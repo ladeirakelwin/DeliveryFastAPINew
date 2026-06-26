@@ -10,13 +10,13 @@ class UsuarioService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _obtendo_usuario(self, email: str) -> Usuario | None:
-        usuario_db = select(Usuario).where(Usuario.email == email)
+    def _obtendo_usuario(self, apelido: str) -> Usuario | None:
+        usuario_db = select(Usuario).where(Usuario.username == apelido)
         usuario = self.db.scalar(usuario_db)
         return usuario
 
-    def autenticar_usuario(self, email: str, senha: str) -> Usuario | None:
-        usuario = self._obtendo_usuario(email)
+    def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
+        usuario = self._obtendo_usuario(apelido)
 
         if not usuario and validar_senha(senha, usuario.senha):
             raise HTTPException(
