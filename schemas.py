@@ -14,8 +14,11 @@ class UsuarioSchema(UsuarioBaseSchema):
     model_config = ConfigDict(from_attributes=True)
     
     senha: str
-    
 
 class UsuarioResponseSchema(UsuarioBaseSchema):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+class LoginSchema(BaseModel):
+    username: str
+    password: str
