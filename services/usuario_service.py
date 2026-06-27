@@ -11,14 +11,14 @@ class UsuarioService:
         self.db = db
 
     def _obtendo_usuario(self, apelido: str) -> Usuario | None:
-        usuario_db = select(Usuario).where(Usuario.username == apelido)
+        usuario_db = select(Usuario).where(Usuario.nome == apelido)
         usuario = self.db.scalar(usuario_db)
         return usuario
 
     def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
         usuario = self._obtendo_usuario(apelido)
 
-        if not usuario and validar_senha(senha, usuario.senha):
+        if not usuario or not validar_senha(senha, usuario.senha):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário ou senha inválido!",
@@ -53,7 +53,7 @@ class UsuarioService:
             self.db.commit()
 
             return novo_usuario
-        except Exception as e:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro inesperado!",
