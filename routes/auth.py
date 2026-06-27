@@ -1,15 +1,30 @@
-from fastapi import APIRouter
-from fastapi.security import OAuth2PasswordBearer
-from schemas import UsuarioResponseSchema, UsuarioSchema
+from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from schemas import  UsuarioResponseSchema, UsuarioSchema, TokenSchema
 from services.usuario_service import UsuarioService
+from services.auth_service import AuthService
+from typing import Annotated
 from database import DBSession
+from dependencies import ACCESS_TOKEN_EXPIRE_MINUTES
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login-form")
 auth_routes = APIRouter(prefix="/auth", tags=["Auth Routes"])
+AccessTokenLogin = Annotated[OAuth2PasswordRequestForm, Depends()]
+
 
 @auth_routes.post("/criar-conta", response_model=UsuarioResponseSchema)
 async def criar_conta(usuario: UsuarioSchema, db: DBSession ):
     usuario_service = UsuarioService(db)
-    novo_usuario = usuario_service.criar_usuario(usuario.email, usuario.senha, usuario.nome, usuario.ativo, usuario.admin)
+    novo_usuario = usuario_service.criar_usuario(usuario.email, usuario.senha, usuario.nome, usuario.ativo or True, usuario.admin or False)
 
     return UsuarioResponseSchema.model_validate(novo_usuario)
+
+@auth_routes.post("/login-form", response_model=TokenSchema)
+async def autenticando_usuario(form_data: AccessTokenLogin, db: DBSession):
+    usuario_service = UsuarioService(db)
+    usuario = usuario_service.autenticar_usuario(form_data.username, form_data.password)
+    
+    auth_service = AuthService(ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.criar_access_token({"sub": usuario.nome})
+
+    return TokenSchema(access_token=access_token,token_type="bearer")
