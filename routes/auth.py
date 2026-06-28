@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from schemas import  UsuarioResponseSchema, UsuarioSchema, TokenSchema
 from services.usuario_service import UsuarioService
 from services.auth_service import AuthService
@@ -7,7 +7,7 @@ from typing import Annotated
 from database import DBSession
 from dependencies import ACCESS_TOKEN_EXPIRE_MINUTES
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login-form")
+
 auth_routes = APIRouter(prefix="/auth", tags=["Auth Routes"])
 AccessTokenLogin = Annotated[OAuth2PasswordRequestForm, Depends()]
 
