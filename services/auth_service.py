@@ -17,3 +17,8 @@ class AuthService:
         except Exception:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Erro ao gerar access token! Tente novamente mais tarde.")
         return token
+    
+    @staticmethod
+    def decodificar_token(token: str):
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
