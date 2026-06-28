@@ -22,3 +22,8 @@ class UsuarioResponseSchema(UsuarioBaseSchema):
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str 
+
+class IdPedidoResponseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
