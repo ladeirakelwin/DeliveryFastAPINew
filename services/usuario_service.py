@@ -2,9 +2,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from models import Usuario
 from fastapi.exceptions import HTTPException
-from fastapi import status
+from fastapi import status, Depends
 from utils.senha import validar_senha, criptografar_senha
-
+from typing import Annotated
+from database import DBSession
+from dependencies import oauth2_scheme
+from jwt.exceptions import InvalidTokenError
+from services.auth_service import AuthService
 
 class UsuarioService:
     def __init__(self, db: Session):
@@ -58,3 +62,33 @@ class UsuarioService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro inesperado!",
             )
+        
+    def obter_usuario_atual(self, token: str) -> Usuario:
+        excecao_credencial = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Não foi possível validar credencial",
+        headers={"WWW-Authenticate": "Bearer"},
+        )
+
+        try:
+            nome = AuthService.decodificar_token(token)
+            if not nome:
+                raise excecao_credencial
+            
+            usuario = self._obtendo_usuario(nome)
+            if not usuario:
+                raise excecao_credencial
+            if not usuario.ativo:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!")
+            
+            return usuario
+
+        except InvalidTokenError:
+            raise excecao_credencial
+        except Exception:
+            raise excecao_credencial
+
+def obter_usuario_autenticado(db: DBSession, token: Annotated[str, Depends(oauth2_scheme)]):
+    return UsuarioService(db).obter_usuario_atual(token)
+
+CurrentUser = Annotated[Usuario, Depends(obter_usuario_autenticado)]        
