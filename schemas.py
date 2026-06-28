@@ -19,10 +19,6 @@ class UsuarioResponseSchema(UsuarioBaseSchema):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
-class LoginSchema(BaseModel):
-    username: str
-    password: str
-
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str 
