@@ -27,3 +27,16 @@ class IdPedidoResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
     id: int
+
+
+class ItemPedidoSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    quantidade: int
+    sabor: str
+    tamanho: str
+    preco_unitario: float
+
+class AdicionarItemPedidoResponseSchema(ItemPedidoSchema):
+    pedido: int
+    preco_pedido: float
