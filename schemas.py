@@ -37,6 +37,19 @@ class ItemPedidoSchema(BaseModel):
     tamanho: str
     preco_unitario: float
 
+class ItemPedidoSchemaModel(ItemPedidoSchema):
+    id: int
+    pedido: int
+
 class AdicionarItemPedidoResponseSchema(ItemPedidoSchema):
     pedido: int
     preco_pedido: float
+
+class PedidoSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    id: int
+    status: str
+    usuario: int
+    preco: float
+    itens: list[ItemPedidoSchemaModel]
