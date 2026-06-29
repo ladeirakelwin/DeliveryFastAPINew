@@ -22,6 +22,11 @@ class PedidoService:
         pedido_db = select(Pedido).where(Pedido.id == id_pedido)
         pedido = self.db.scalar(pedido_db)
         return pedido
+    
+    def _obtendo_item_pedido(self, id_item_pedido: int) -> ItensPedido | None:
+        item_pedido_db = select(ItensPedido).where(ItensPedido.id == id_item_pedido)
+        item_pedido = self.db.scalar(item_pedido_db)
+        return item_pedido
 
     def criando_pedido(self, id_usuario: int) -> Pedido:
         status_pedido: str = "PENDENTE"
@@ -61,8 +66,26 @@ class PedidoService:
 
         return pedido_atualizado, novo_item_pedido
 
+    def remover_item_pedido(self, id_item_pedido: int, usuario: Usuario) -> Pedido:
+        item_pedido =  self._obtendo_item_pedido(id_item_pedido)
         
+        if not item_pedido:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item pedido não encontrado!")
+        
+        pedido_associado = self._obtendo_pedido(item_pedido.pedido)
 
+        if not pedido_associado:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido associado ao item pedido não encontrado!")
+        
+        if not usuario.admin and usuario.id != pedido_associado.usuario:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario não autorizado!")
+        
+        self.db.delete(item_pedido)
+        self.db.commit()
+        
+        pedido_associado_recalculado = self._calcular_total_pedido(pedido_associado)
 
+        return pedido_associado_recalculado
+        
 
         
