@@ -26,6 +26,10 @@ class Pedido(Base):
     status: Mapped[str] = mapped_column(String)
     usuario: Mapped[int] = mapped_column(Integer,ForeignKey("Usuarios.id"))
     preco: Mapped[float] = mapped_column(Float)
+    itens: Mapped[list["ItensPedido"]] = relationship(
+        back_populates="pedido_relationship",
+        cascade="all, delete-orphan"
+    )
 
     def __init__(self, usuario, status="PENDENTE", preco=0):
         self.usuario = usuario
@@ -42,7 +46,14 @@ class ItensPedido(Base):
     preco_unitario: Mapped[float] = mapped_column( Float)
     pedido: Mapped[int] = mapped_column(Integer, ForeignKey("Pedidos.id"))
 
+    pedido_relationship: Mapped["Pedido"] = relationship(back_populates="itens")
 
+    def __init__(self, quantidade, sabor, tamanho, preco_unitario, pedido):
+        self.quantidade = quantidade
+        self.sabor = sabor
+        self.tamanho = tamanho
+        self.preco_unitario = preco_unitario
+        self.pedido = pedido
 
 
 
