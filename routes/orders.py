@@ -59,3 +59,14 @@ def finalizar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
     return AlterarPedidoResponseSchema.model_validate(
         {"mensagem": "Pedido finalizado com sucesso!", "pedido": pedido}
     )
+
+
+@order_routes.put(
+    "/pedidos/pedido/cancelar/{id_pedido}", response_model=AlterarPedidoResponseSchema
+)
+def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
+    pedido = PedidoService(db).alterar_status_pedido(id_pedido, "CANCELADO", usuario)
+
+    return AlterarPedidoResponseSchema.model_validate(
+        {"mensagem": "Pedido cancelado com sucesso!", "pedido": pedido}
+    )
