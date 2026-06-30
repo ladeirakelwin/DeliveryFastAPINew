@@ -27,6 +27,12 @@ class PedidoService:
         pedido = self.db.scalar(pedido_db)
         return pedido
     
+
+    def _obtendo_pedidos(self) -> list[Pedido]:
+        pedidos_db = select(Pedido)
+        pedidos = list(self.db.scalars(pedidos_db).fetchall())
+        return pedidos
+
     def _obtendo_item_pedido(self, id_item_pedido: int) -> ItensPedido | None:
         item_pedido_db = select(ItensPedido).where(ItensPedido.id == id_item_pedido)
         item_pedido = self.db.scalar(item_pedido_db)
@@ -104,6 +110,14 @@ class PedidoService:
         self.db.refresh(pedido)
 
         return pedido
+    
+    def listar_todos_pedidos(self, usuario: Usuario) -> list[Pedido]:
+        if not usuario.admin:
+            raise self.USUARIO_NAO_AUTORIZADO
+        
+        pedidos = self._obtendo_pedidos()
+
+        return pedidos
         
         
         
