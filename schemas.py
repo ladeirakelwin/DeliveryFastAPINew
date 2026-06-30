@@ -46,10 +46,15 @@ class AdicionarItemPedidoResponseSchema(ItemPedidoSchema):
     preco_pedido: float
 
 class PedidoSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     status: str
     usuario: int
     preco: float
     itens: list[ItemPedidoSchemaModel]
+
+class AlterarPedidoResponseSchema(BaseModel):
+    mensagem: str
+    pedido: PedidoSchema
+
