@@ -5,7 +5,8 @@ from schemas import (
     IdPedidoResponseSchema,
     ItemPedidoSchema,
     AdicionarItemPedidoResponseSchema,
-    PedidoSchema
+    PedidoSchema,
+    AlterarPedidoResponseSchema,
 )
 from database import DBSession
 
@@ -44,5 +45,17 @@ def adicionar_item_pedido(
 )
 def deletar_item_pedido(id_item_pedido: int, usuario: CurrentUser, db: DBSession):
     pedido = PedidoService(db).remover_item_pedido(id_item_pedido, usuario)
-    
+
     return PedidoSchema.model_validate(pedido)
+
+
+@order_routes.put(
+    "/pedidos/pedido/finalizar/{id_pedido}",
+    response_model=AlterarPedidoResponseSchema,
+)
+def finalizar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
+    pedido = PedidoService(db).alterar_status_pedido(id_pedido, "FINALIZADO", usuario)
+
+    return AlterarPedidoResponseSchema.model_validate(
+        {"mensagem": "Pedido finalizado com sucesso!", "pedido": pedido}
+    )
