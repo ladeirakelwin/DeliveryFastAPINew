@@ -55,6 +55,13 @@ class PedidoSchema(BaseModel):
     itens: list[ItemPedidoSchemaModel]
 
 class AlterarPedidoResponseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     mensagem: str
     pedido: PedidoSchema
+
+class ListarTodosPedidosResponseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pedidos: list[PedidoSchema] 
 
