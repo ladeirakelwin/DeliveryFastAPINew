@@ -7,6 +7,7 @@ from schemas import (
     AdicionarItemPedidoResponseSchema,
     PedidoSchema,
     AlterarPedidoResponseSchema,
+    ListarTodosPedidosResponseSchema,
 )
 from database import DBSession
 
@@ -70,3 +71,9 @@ def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
     return AlterarPedidoResponseSchema.model_validate(
         {"mensagem": "Pedido cancelado com sucesso!", "pedido": pedido}
     )
+
+
+@order_routes.get("/listar", response_model=ListarTodosPedidosResponseSchema)
+def listar_pedidos(usuario: CurrentUser, db: DBSession):
+    pedidos = PedidoService(db).listar_todos_pedidos(usuario)
+    return ListarTodosPedidosResponseSchema.model_validate({"pedidos": pedidos})
