@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from fastapi import status
 from schemas import ItemPedidoSchema
+from typing import Literal
 
 class PedidoService:
+    PEDIDO_NAO_ENCONTRADO = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado!")
+    USUARIO_NAO_AUTORIZADO = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario não autorizado!")
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -47,10 +51,10 @@ class PedidoService:
         except Exception:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Erro ao buscar pedido! Tente novamente mais tarde.")
         if not pedido:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado!")
+            raise self.PEDIDO_NAO_ENCONTRADO
         
         if not usuario.admin and usuario.id != pedido.usuario:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario não autorizado!")
+            raise self.USUARIO_NAO_AUTORIZADO
         
         novo_item_pedido = ItensPedido(quantidade=item_pedido.quantidade
                                        ,sabor=item_pedido.sabor
@@ -78,7 +82,7 @@ class PedidoService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido associado ao item pedido não encontrado!")
         
         if not usuario.admin and usuario.id != pedido_associado.usuario:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario não autorizado!")
+            raise self.USUARIO_NAO_AUTORIZADO
         
         self.db.delete(item_pedido)
         self.db.commit()
@@ -86,6 +90,20 @@ class PedidoService:
         pedido_associado_recalculado = self._calcular_total_pedido(pedido_associado)
 
         return pedido_associado_recalculado
-        
 
+    def alterar_status_pedido(self, id_pedido: int, novo_status: Literal["CANCELADO","FINALIZADO"], usuario: Usuario):
+        pedido = self._obtendo_pedido(id_pedido)
+        if not pedido:
+            raise self.PEDIDO_NAO_ENCONTRADO
+        
+        if not usuario.admin and usuario.id != pedido.usuario:
+            raise self.USUARIO_NAO_AUTORIZADO
+        
+        pedido.status = novo_status
+        self.db.commit()
+        self.db.refresh(pedido)
+
+        return pedido
+        
+        
         
