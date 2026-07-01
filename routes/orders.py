@@ -77,3 +77,9 @@ def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
 def listar_pedidos(usuario: CurrentUser, db: DBSession):
     pedidos = PedidoService(db).listar_todos_pedidos(usuario)
     return ListarTodosPedidosResponseSchema.model_validate({"pedidos": pedidos})
+
+
+@order_routes.get("/listar/pedido-usuario/", response_model=ListarTodosPedidosResponseSchema)
+def listar_pedidos_usuarios(usuario: CurrentUser, db: DBSession):
+    pedidos = PedidoService(db).listar_todos_pedidos_usuarios(usuario)
+    return ListarTodosPedidosResponseSchema.model_validate({"pedidos": pedidos})
