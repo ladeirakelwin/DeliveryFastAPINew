@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas import  UsuarioResponseSchema, UsuarioSchema, TokenSchema
+from schemas import  UsuarioResponseSchema, UsuarioSchema, TokenSchema, RefreshTokenSchema
 from services.usuario_service import UsuarioService
 from services.auth_service import AuthService
 from typing import Annotated
 from database import DBSession
-from dependencies import ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 auth_routes = APIRouter(prefix="/auth", tags=["Auth Routes"])
@@ -24,7 +23,13 @@ async def autenticando_usuario(form_data: AccessTokenLogin, db: DBSession):
     usuario_service = UsuarioService(db)
     usuario = usuario_service.autenticar_usuario(form_data.username, form_data.password)
     
-    auth_service = AuthService(ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_service.criar_access_token({"sub": usuario.nome})
+    access_token = AuthService().criar_token({"sub": usuario.nome})
+    refresh_token = AuthService().criar_token({"sub": usuario.nome}, True)
 
-    return TokenSchema(access_token=access_token,token_type="bearer")
+
+    return TokenSchema(access_token=access_token, refresh_token=refresh_token,token_type="Bearer")
+
+@auth_routes.post("/refresh", response_model=TokenSchema)
+def obtendo_novos_token(payload: RefreshTokenSchema):
+    access_token, refresh_token = AuthService().atualizar_token(payload.refresh_token)
+    return TokenSchema(refresh_token=refresh_token, access_token=access_token, token_type="Bearer")
