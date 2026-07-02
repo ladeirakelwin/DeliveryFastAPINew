@@ -11,6 +11,13 @@ from jwt.exceptions import InvalidTokenError
 from services.auth_service import AuthService
 
 class UsuarioService:
+    USUARIO_INATIVO = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!")
+    EXCECAO_CREDENCIAL = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Não foi possível validar credencial",
+        headers={"WWW-Authenticate": "Bearer"},
+        )
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -27,7 +34,10 @@ class UsuarioService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário ou senha inválido!",
             )
-
+        
+        if not usuario.ativo:
+            raise self.USUARIO_INATIVO
+        
         return usuario
 
     def criar_usuario(
@@ -64,29 +74,23 @@ class UsuarioService:
             )
         
     def obter_usuario_atual(self, token: str) -> Usuario:
-        excecao_credencial = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Não foi possível validar credencial",
-        headers={"WWW-Authenticate": "Bearer"},
-        )
-
         try:
-            nome = AuthService.decodificar_token(token)
+            nome = AuthService.decodificar_token(token).get("sub")
             if not nome:
-                raise excecao_credencial
+                raise self.EXCECAO_CREDENCIAL
             
             usuario = self._obtendo_usuario(nome)
             if not usuario:
-                raise excecao_credencial
+                raise self.EXCECAO_CREDENCIAL
             if not usuario.ativo:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!")
+                raise self.USUARIO_INATIVO
             
             return usuario
 
         except InvalidTokenError:
-            raise excecao_credencial
+            raise self.EXCECAO_CREDENCIAL
         except Exception:
-            raise excecao_credencial
+            raise self.EXCECAO_CREDENCIAL
 
 def obter_usuario_autenticado(db: DBSession, token: Annotated[str, Depends(oauth2_scheme)]):
     return UsuarioService(db).obter_usuario_atual(token)
