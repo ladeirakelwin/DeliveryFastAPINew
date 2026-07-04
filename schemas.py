@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from fastapi import Query
 from typing import Optional
 
 
@@ -61,10 +62,15 @@ class AlterarPedidoResponseSchema(BaseModel):
     mensagem: str
     pedido: PedidoSchema
 
-class ListarTodosPedidosResponseSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    pedidos: list[PedidoSchema]
-
 class RefreshTokenSchema(BaseModel):
     refresh_token: str
+
+class PaginationSchema(BaseModel):
+    offset: int = Query(0, ge=0, description="Número de registro a pular")
+    limit: int = Query(5, ge=1, le=50, description="Máximo de registros por página")
+
+
+class ListarTodosPedidosResponseSchema(PaginationSchema):
+    model_config = ConfigDict(from_attributes=True)
+    
+    pedidos: list[PedidoSchema]
