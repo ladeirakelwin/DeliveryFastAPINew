@@ -1,951 +1,1120 @@
-# 1. Visão geral da aplicação
+# 1. Resumo do projeto analisado
 
-* **Nome provável da aplicação:** `DeliveryFastAPI`
-* **Objetivo principal:** fornecer uma API para cadastro/autenticação de usuários e gerenciamento básico de pedidos de delivery, com itens, preço total e status do pedido.
-* **Tipo de aplicação:** API
-* **Frameworks principais:** FastAPI, SQLAlchemy, Alembic, Pydantic
-* **Linguagem e versão Python sugerida:** Python `3.12.13`, confirmado por `.python-version` e `pyproject.toml`.
-* **Público-alvo ou usuário final:** usuários/clientes de um sistema simples de pedidos e administradores que podem listar e gerenciar pedidos.
-* **Resumo do funcionamento em 5 a 10 linhas:**
+* **Nome provável do projeto:** `DeliveryFastAPINew`
+* **Tipo de aplicação:** API REST simples de delivery/pedidos.
+* **Framework:** FastAPI.
+* **Banco de dados:** SQLite local via `base.db`, configurado por `DATABASE_URL` no `.env`.
+* **Principais dependências:** `fastapi[standard]`, `sqlalchemy`, `alembic`, `pydantic`, `pyjwt`, `python-jose`, `python-dotenv`, `pwdlib`, `passlib`, `uvicorn`, `requests`, `sqlalchemy-utils`.
+* **Estrutura geral:**
 
-A aplicação expõe uma API REST com rotas de autenticação e rotas de pedidos. O usuário pode criar conta, realizar login e receber tokens JWT. As rotas de pedidos exigem autenticação via Bearer Token. Um pedido pertence a um usuário, inicia com status `PENDENTE` e preço `0`. É possível adicionar e remover itens do pedido, recalculando o preço total com base em quantidade e preço unitário. Usuários comuns só podem acessar/modificar seus próprios pedidos; administradores têm acesso ampliado. O banco usado é SQLite local, por meio do arquivo `banco.db`. A aplicação contém configuração via `.env`, mas o banco está hardcoded em `models.py`.
+  * `main.py`
+  * `routes/auth.py`
+  * `routes/orders.py`
+  * `services/auth_service.py`
+  * `services/usuario_service.py`
+  * `services/pedido_service.py`
+  * `models.py`
+  * `schemas.py`
+  * `database.py`
+  * `dependencies.py`
+  * `utils/senha.py`
+  * `alembic/`
+* **Existe Docker?** Não.
+* **Existe teste?** Não há pasta `tests/` nem testes automatizados.
+* **Existe autenticação?** Sim, com Bearer Token/JWT.
+* **Existe documentação?** Sim, há `README.md`, mas ele está parcialmente desatualizado em relação ao código atual.
+* **Estado atual em 5 a 10 linhas:**
 
----
-
-# 2. Estrutura do projeto
-
-```text
-/DeliveryFastAPI
-  .env
-  .gitignore
-  .python-version
-  README.md
-  __init__.py
-  main.py
-  auth_routes.py
-  order_routes.py
-  dependencies.py
-  models.py
-  schemas.py
-  teste.py
-  banco.db
-  requirements.txt
-  pyproject.toml
-  uv.lock
-  alembic.ini
-  /alembic
-    env.py
-    README
-    script.py.mako
-    /versions
-      e9b4b5830922_initial_migration.py
-  /.git
-  /__pycache__
-```
-
-## Função de cada pasta/arquivo importante
-
-| Arquivo/Pasta                                        | Função identificada                                                                                            | Status     |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------- |
-| `main.py`                                            | Cria a instância FastAPI e registra os routers de autenticação e pedidos.                                      | Confirmado |
-| `auth_routes.py`                                     | Define rotas de cadastro, login, login via formulário OAuth2 e refresh de token.                               | Confirmado |
-| `order_routes.py`                                    | Define rotas protegidas para criar, listar, visualizar, cancelar, finalizar pedidos e adicionar/remover itens. | Confirmado |
-| `dependencies.py`                                    | Centraliza dependências de sessão SQLAlchemy, hashing bcrypt, OAuth2 Bearer e validação JWT.                   | Confirmado |
-| `models.py`                                          | Define conexão SQLite, `Base` SQLAlchemy e modelos `Usuario`, `Pedido`, `ItemPedido`.                          | Confirmado |
-| `schemas.py`                                         | Define schemas Pydantic de entrada e resposta.                                                                 | Confirmado |
-| `banco.db`                                           | Banco SQLite local já incluído no projeto, com tabelas e dados.                                                | Confirmado |
-| `.env`                                               | Contém configurações de JWT/token. Valores não expostos por segurança.                                         | Confirmado |
-| `requirements.txt`                                   | Lista dependências Python para instalação via pip.                                                             | Confirmado |
-| `pyproject.toml`                                     | Define projeto, versão, Python mínimo e dependências, provavelmente para uso com `uv`.                         | Confirmado |
-| `uv.lock`                                            | Lockfile do gerenciador `uv`.                                                                                  | Confirmado |
-| `alembic.ini`                                        | Configuração do Alembic apontando para SQLite `banco.db`.                                                      | Confirmado |
-| `alembic/env.py`                                     | Configura migrations Alembic usando `Base.metadata` dos modelos.                                               | Confirmado |
-| `alembic/versions/e9b4b5830922_initial_migration.py` | Migration inicial criando tabelas `usuarios`, `pedidos` e `itens_pedido`.                                      | Confirmado |
-| `teste.py`                                           | Script manual usando `requests` para chamar `/auth/refresh` com Bearer Token hardcoded.                        | Confirmado |
-| `README.md`                                          | Arquivo existe, mas está vazio.                                                                                | Confirmado |
-| `.git/`                                              | Metadados Git incluídos no ZIP. Não fazem parte da aplicação em si.                                            | Confirmado |
-| `__pycache__/`                                       | Arquivos compilados Python. Não são necessários para reconstrução.                                             | Confirmado |
+A aplicação já tem uma base boa para estudo: usa FastAPI, routers, camada de services, SQLAlchemy 2.x, Alembic, Pydantic e autenticação com JWT. As rotas principais permitem criar conta, fazer login, gerar refresh token, criar pedido, adicionar/remover item, finalizar/cancelar pedido e listar pedidos. O projeto ainda não está pronto para deploy profissional porque não tem Dockerfile, health check, testes automatizados, CI/CD, logs mínimos estruturados e `.env.example`. Há pontos de segurança importantes: o cadastro permite enviar `admin`, o refresh token pode ser aceito como token de acesso nas rotas protegidas, e o `.env` foi incluído no `.zip` enviado, embora não pareça estar versionado no Git. Também há bugs de regra de negócio e inconsistências: busca de usuário por `nome` em vez de `email`, expiração de token calculada na definição da classe, tipos inconsistentes no model de itens e rotas com prefixo duplicado.
 
 ---
 
-# 3. Dependências e ambiente
+# 2. Diagnóstico geral
 
-| Item                  | Valor identificado                                                  | Fonte                                           | Observação                                                  |
-| --------------------- | ------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
-| Framework web         | FastAPI                                                             | `main.py`, `requirements.txt`, `pyproject.toml` | Confirmado                                                  |
-| Servidor ASGI         | Uvicorn                                                             | `requirements.txt`, `pyproject.toml`            | Confirmado                                                  |
-| ORM                   | SQLAlchemy                                                          | `models.py`, `dependencies.py`                  | Confirmado                                                  |
-| Migrations            | Alembic                                                             | `alembic.ini`, `/alembic`                       | Confirmado                                                  |
-| Banco                 | SQLite                                                              | `models.py`, `alembic.ini`, `banco.db`          | Confirmado                                                  |
-| Autenticação          | OAuth2 Bearer + JWT                                                 | `dependencies.py`, `auth_routes.py`             | Confirmado                                                  |
-| JWT                   | `python-jose`                                                       | `auth_routes.py`, `dependencies.py`             | Confirmado                                                  |
-| Hash de senha         | Passlib + bcrypt                                                    | `dependencies.py`, `auth_routes.py`             | Confirmado                                                  |
-| Validação de dados    | Pydantic                                                            | `schemas.py`                                    | Confirmado                                                  |
-| Variáveis de ambiente | `.env` com `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | `.env`, `dependencies.py`                       | Valores não expostos                                        |
-| Python                | `3.12.13`                                                           | `.python-version`, `pyproject.toml`             | Confirmado                                                  |
-| Gerenciador possível  | `uv`                                                                | `uv.lock`, `pyproject.toml`                     | Inferido                                                    |
-| Testes automatizados  | Não encontrado                                                      | Estrutura do projeto                            | Não há pasta `tests` nem pytest/unittest                    |
-| Docker                | Não encontrado                                                      | Estrutura do projeto                            | Não há `Dockerfile` nem `docker-compose.yml`                |
-| Cache/Fila            | Não encontrado                                                      | Código                                          | Não confirmado                                              |
-| Serviços externos     | Não encontrados                                                     | Código                                          | A aplicação só usa SQLite local; `teste.py` chama API local |
-
-## Dependências Python identificadas
-
-Principais dependências relevantes:
-
-* `fastapi`
-* `uvicorn`
-* `sqlalchemy`
-* `alembic`
-* `pydantic`
-* `python-dotenv`
-* `python-jose`
-* `passlib`
-* `bcrypt`
-* `python-multipart`
-* `requests`
-
-Observações:
-
-* `requirements.txt` não lista `requests`, mas `teste.py` usa `requests`.
-* `pyproject.toml` lista `requests`, então há divergência entre `requirements.txt` e `pyproject.toml`.
-* `sqlalchemy-utils` aparece no `pyproject.toml`, mas não foi identificado uso direto no código principal.
-* O projeto não possui `.env.example`.
-
-## Comandos prováveis para instalar e executar
-
-### Com pip
-
-```bash
-cd DeliveryFastAPI
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# ou .venv\Scripts\activate no Windows
-
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-### Com uv
-
-```bash
-cd DeliveryFastAPI
-uv sync
-uv run uvicorn main:app --reload
-```
-
-### Com Alembic
-
-```bash
-cd DeliveryFastAPI
-alembic upgrade head
-```
-
-Observação: como `main.py` usa imports diretos como `from auth_routes import ...`, a forma mais segura é executar o Uvicorn a partir da pasta `DeliveryFastAPI`.
+| Área         | Situação atual | Risco | Observação                                                                                                                             |
+| ------------ | -------------: | ----: | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Organização  |          Média | Médio | Há separação em `routes/`, `services/`, `models.py` e `schemas.py`, mas ainda falta padronização de nomes, config e responsabilidades. |
+| Validação    |    Média/Fraca | Médio | Usa Pydantic, mas faltam `EmailStr`, validações de quantidade/preço/senha e schemas separados para criação/retorno/admin.              |
+| Banco        |          Média | Médio | SQLAlchemy e Alembic existem, mas há tipo incorreto em `quantidade`, transações sem rollback e SQLite local incluído no pacote.        |
+| Testes       |          Fraca |  Alto | Não há testes automatizados para login, autorização, pedidos, erros e banco.                                                           |
+| Segurança    |          Fraca |  Alto | Cadastro aceita `admin`, refresh token pode autenticar rotas protegidas, `.env` veio no zip e faltam validações fortes.                |
+| Documentação |          Média | Médio | README existe, mas está inconsistente com a estrutura real do projeto e com as rotas atuais.                                           |
+| Deploy       |          Fraca |  Alto | Sem Dockerfile, sem health check, sem logs, sem comando claro de produção e sem separação segura de ambiente.                          |
 
 ---
 
-# 4. Arquitetura técnica
+# 3. Requisitos de melhoria
 
-## Estilo arquitetural
+## RM-001 — Corrigir identificação do usuário por email no cadastro e login
 
-A aplicação usa uma arquitetura simples e monolítica, baseada em FastAPI com separação mínima por arquivos:
+* **Categoria:** Segurança / Autenticação / Banco
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O método `_obtendo_usuario` recebe um parâmetro genérico, mas busca por `Usuario.nome`. No cadastro, ele é chamado passando `email`, o que faz a verificação de duplicidade ficar inconsistente. No login, o `username` do formulário acaba sendo tratado como nome, não email.
+* **Por que melhorar:** Login e cadastro precisam usar um identificador claro e único. O email já está marcado como `unique=True`, então deve ser o principal identificador.
+* **Requisito de melhoria:** “O sistema deve autenticar e localizar usuários pelo email, mantendo o email como identificador único de conta.”
+* **Como aplicar de forma simples:**
 
-* `main.py`: composição da aplicação.
-* `auth_routes.py`: rotas de autenticação.
-* `order_routes.py`: rotas de pedidos.
-* `models.py`: modelos ORM e conexão com banco.
-* `schemas.py`: schemas Pydantic.
-* `dependencies.py`: dependências compartilhadas, sessão e autenticação.
+  1. Renomear `_obtendo_usuario` para `_obter_usuario_por_email`.
+  2. Alterar o filtro para `Usuario.email == email`.
+  3. Ajustar `autenticar_usuario` para receber `email`.
+  4. No login, considerar `form_data.username` como email.
+  5. Manter `Usuario.nome` apenas como dado de exibição.
+* **Critério de aceite:** Um usuário cadastrado com email consegue fazer login usando esse email; tentativa de cadastrar email repetido retorna erro 409 controlado.
+* **Arquivos provavelmente envolvidos:** `services/usuario_service.py`, `routes/auth.py`, `schemas.py`.
+* **O que evitar:** Não usar `nome` como identificador de login se ele não for único.
+* **Fonte do porquê:** A própria documentação do FastAPI usa fluxos OAuth2/JWT com identificação clara do usuário e validação de credenciais antes de emitir tokens. ([FastAPI][1])
+* **Referências de estudo:**
 
-Não há camada explícita de serviço, repositório, domínio ou use cases. As rotas acessam diretamente os modelos SQLAlchemy e manipulam regras de negócio dentro dos endpoints.
-
-## Diagrama textual
-
-```text
-Cliente HTTP
-   ↓
-FastAPI / main.py
-   ↓
-Routers
-   ├── auth_routes.py
-   └── order_routes.py
-        ↓
-Dependências
-   ├── pegar_sessao()
-   ├── verificar_token()
-   └── bcrypt_context / OAuth2 / JWT
-        ↓
-Modelos SQLAlchemy
-   ├── Usuario
-   ├── Pedido
-   └── ItemPedido
-        ↓
-SQLite
-   └── banco.db
-```
-
-## Camadas identificadas
-
-| Camada                   | Arquivos                                       | Responsabilidade                              | Status     |
-| ------------------------ | ---------------------------------------------- | --------------------------------------------- | ---------- |
-| Entrada HTTP/API         | `main.py`, `auth_routes.py`, `order_routes.py` | Receber requisições e retornar respostas JSON | Confirmado |
-| Validação de entrada     | `schemas.py`                                   | Definir formato dos dados esperados           | Confirmado |
-| Autenticação/autorização | `dependencies.py`, `auth_routes.py`            | Criar/verificar JWT e restringir acesso       | Confirmado |
-| Persistência             | `models.py`, `banco.db`                        | Mapear entidades e persistir em SQLite        | Confirmado |
-| Migration                | `alembic/`                                     | Criar schema do banco                         | Confirmado |
-| Teste/manual client      | `teste.py`                                     | Chamar endpoint local com token               | Confirmado |
-
-## Padrões usados
-
-* Router por domínio: `auth` e `pedidos`.
-* Dependency Injection do FastAPI com `Depends`.
-* ORM com Active Record simplificado via SQLAlchemy.
-* DTOs/schemas com Pydantic.
-* Autenticação por Bearer Token JWT.
-* Migrations com Alembic.
-
-## Pontos de acoplamento
-
-* `models.py` contém a URL do banco hardcoded: `sqlite:///banco.db`.
-* As rotas dependem diretamente dos modelos SQLAlchemy.
-* A regra de autorização está repetida em várias rotas de pedido.
-* `dependencies.py` depende diretamente de `Usuario` e da conexão `db`.
-* Os status de pedido são strings soltas, sem enum centralizado.
-
-## Pontos de extensão
-
-* Criar camada `services/` para regras de negócio.
-* Criar camada `repositories/` para acesso ao banco.
-* Mover configurações para `settings.py` usando Pydantic Settings.
-* Criar módulo de produtos/cardápio.
-* Criar validações de pedido, preço, quantidade e status.
-* Adicionar testes automatizados.
-* Trocar SQLite por PostgreSQL em produção.
-* Adicionar Docker e `.env.example`.
+  * Inglês: FastAPI — OAuth2 with Password and JWT.
+  * Português: FastAPI em português — segurança e autenticação, quando disponível.
 
 ---
 
-# 5. Funcionalidades identificadas
+## RM-002 — Impedir criação pública de usuário administrador
 
-## Funcionalidade: Cadastro de usuário
+* **Categoria:** Segurança
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O schema de criação de usuário aceita o campo `admin`, e a rota pública `/auth/criar-conta` repassa esse valor para o banco.
+* **Por que melhorar:** Um usuário comum não deve conseguir se tornar administrador apenas enviando `"admin": true` no corpo da requisição.
+* **Requisito de melhoria:** “O sistema deve impedir que usuários criem contas administrativas pela rota pública de cadastro.”
+* **Como aplicar de forma simples:**
 
-* **Descrição:** permite criar um usuário com nome, email, senha, ativo e admin.
-* **Entrada:** `nome`, `email`, `senha`, `ativo`, `admin`.
-* **Processamento:** verifica se email já existe; criptografa senha com bcrypt; salva usuário.
-* **Saída:** mensagem de sucesso com email.
-* **Arquivos/módulos relacionados:** `auth_routes.py`, `schemas.py`, `models.py`, `dependencies.py`.
-* **Regras de negócio:** email não pode estar previamente cadastrado; senha deve ser armazenada criptografada.
-* **Evidência no código:** `POST /auth/criar_conta`.
-* **Status:** Confirmado.
+  1. Criar `UsuarioCreateSchema` sem o campo `admin`.
+  2. No service, definir `admin=False` por padrão.
+  3. Criar conta admin apenas manualmente, por seed controlado ou rota protegida para admin.
+* **Critério de aceite:** Mesmo que o cliente envie `admin: true`, o usuário criado continua com `admin=False`.
+* **Arquivos provavelmente envolvidos:** `schemas.py`, `routes/auth.py`, `services/usuario_service.py`.
+* **O que evitar:** Não confiar em campos sensíveis vindos diretamente do cliente.
+* **Fonte do porquê:** A OWASP classifica exposição/alteração indevida de propriedades sensíveis como risco de autorização em APIs, especialmente quando o cliente consegue manipular campos internos. ([OWASP][2])
+* **Referências de estudo:**
 
-## Funcionalidade: Login via JSON
-
-* **Descrição:** autentica usuário por email e senha.
-* **Entrada:** `email`, `senha`.
-* **Processamento:** busca usuário por email; valida senha com bcrypt; gera access token e refresh token.
-* **Saída:** `access_token`, `refresh_token`, `token_type`.
-* **Arquivos/módulos relacionados:** `auth_routes.py`, `dependencies.py`.
-* **Regras de negócio:** credenciais inválidas retornam erro; token contém `sub` com ID do usuário e expiração.
-* **Evidência no código:** `POST /auth/login`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Login via formulário OAuth2
-
-* **Descrição:** autentica via `OAuth2PasswordRequestForm`.
-* **Entrada:** `username` usado como email e `password` como senha.
-* **Processamento:** autentica usuário e gera access token.
-* **Saída:** `access_token`, `token_type`.
-* **Arquivos/módulos relacionados:** `auth_routes.py`, `dependencies.py`.
-* **Regras de negócio:** usado pelo fluxo OAuth2 Bearer do FastAPI.
-* **Evidência no código:** `POST /auth/login-form`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Refresh de access token
-
-* **Descrição:** gera novo access token para usuário autenticado.
-* **Entrada:** Bearer Token válido.
-* **Processamento:** valida token, identifica usuário e cria novo access token.
-* **Saída:** novo `access_token`.
-* **Arquivos/módulos relacionados:** `auth_routes.py`, `dependencies.py`, `teste.py`.
-* **Regras de negócio:** depende de token válido e usuário existente.
-* **Evidência no código:** `GET /auth/refresh`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Criar pedido
-
-* **Descrição:** cria pedido para um usuário informado.
-* **Entrada:** `usuario` com ID do usuário.
-* **Processamento:** cria `Pedido` com status padrão `PENDENTE` e preço inicial `0`.
-* **Saída:** mensagem com ID do pedido criado.
-* **Arquivos/módulos relacionados:** `order_routes.py`, `schemas.py`, `models.py`.
-* **Regras de negócio:** pedido pertence a um usuário; preço inicial é zero.
-* **Evidência no código:** `POST /pedidos/pedido`.
-* **Status:** Confirmado.
-
-Observação importante: a rota é protegida por token, mas o usuário dono do pedido vem do corpo da requisição. Não foi confirmada validação garantindo que o usuário autenticado seja o mesmo usuário informado no body.
-
-## Funcionalidade: Cancelar pedido
-
-* **Descrição:** altera o status do pedido para `CANCELADO`.
-* **Entrada:** `id_pedido`.
-* **Processamento:** busca pedido; verifica se usuário é admin ou dono do pedido; altera status.
-* **Saída:** mensagem de sucesso e objeto do pedido.
-* **Arquivos/módulos relacionados:** `order_routes.py`.
-* **Regras de negócio:** apenas admin ou dono pode cancelar.
-* **Evidência no código:** `POST /pedidos/pedido/cancelar/{id_pedido}`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Finalizar pedido
-
-* **Descrição:** altera o status do pedido para `FINALIZADO`.
-* **Entrada:** `id_pedido`.
-* **Processamento:** busca pedido; verifica autorização; altera status.
-* **Saída:** mensagem de sucesso e objeto do pedido.
-* **Arquivos/módulos relacionados:** `order_routes.py`.
-* **Regras de negócio:** apenas admin ou dono pode finalizar.
-* **Evidência no código:** `POST /pedidos/pedido/finalizar/{id_pedido}`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Adicionar item ao pedido
-
-* **Descrição:** adiciona item a um pedido.
-* **Entrada:** `id_pedido`, `quantidade`, `sabor`, `tamanho`, `preco_unitario`.
-* **Processamento:** busca pedido; verifica autorização; cria `ItemPedido`; recalcula preço total.
-* **Saída:** mensagem, ID do item e preço atualizado do pedido.
-* **Arquivos/módulos relacionados:** `order_routes.py`, `schemas.py`, `models.py`.
-* **Regras de negócio:** preço do pedido é a soma de `quantidade * preco_unitario` dos itens.
-* **Evidência no código:** `POST /pedidos/pedido/adicionar-item/{id_pedido}`.
-* **Status:** Confirmado.
-
-Observação técnica: quando o pedido não existe, o código instancia `HTTPException`, mas não usa `raise`, o que pode causar erro posterior.
-
-## Funcionalidade: Remover item do pedido
-
-* **Descrição:** remove um item de pedido.
-* **Entrada:** `id_item_pedido`.
-* **Processamento:** busca item; busca pedido associado; verifica autorização; remove item; recalcula preço.
-* **Saída:** mensagem, quantidade de itens e pedido.
-* **Arquivos/módulos relacionados:** `order_routes.py`, `models.py`.
-* **Regras de negócio:** apenas admin ou dono pode remover item.
-* **Evidência no código:** `POST /pedidos/pedido/remover-item/{id_item_pedido}`.
-* **Status:** Confirmado, com falha potencial.
-
-Observação técnica: o código acessa `item_pedido.pedido` antes de validar se `item_pedido` existe. Se o item não existir, tende a gerar erro 500.
-
-## Funcionalidade: Visualizar pedido
-
-* **Descrição:** consulta um pedido específico.
-* **Entrada:** `id_pedido`.
-* **Processamento:** busca pedido; valida se usuário é admin ou dono.
-* **Saída:** quantidade de itens e objeto do pedido.
-* **Arquivos/módulos relacionados:** `order_routes.py`.
-* **Regras de negócio:** apenas admin ou dono pode visualizar.
-* **Evidência no código:** `GET /pedidos/pedido/{id_pedido}`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Listar todos os pedidos
-
-* **Descrição:** retorna todos os pedidos do sistema.
-* **Entrada:** Bearer Token de usuário admin.
-* **Processamento:** valida token; verifica se `admin=True`; consulta todos os pedidos.
-* **Saída:** lista de pedidos.
-* **Arquivos/módulos relacionados:** `order_routes.py`.
-* **Regras de negócio:** apenas administradores podem listar todos os pedidos.
-* **Evidência no código:** `GET /pedidos/listar`.
-* **Status:** Confirmado.
-
-## Funcionalidade: Listar pedidos do usuário autenticado
-
-* **Descrição:** retorna pedidos vinculados ao usuário autenticado.
-* **Entrada:** Bearer Token.
-* **Processamento:** identifica usuário pelo token; consulta pedidos com `Pedido.usuario == usuario.id`.
-* **Saída:** lista de pedidos com itens.
-* **Arquivos/módulos relacionados:** `order_routes.py`, `schemas.py`.
-* **Regras de negócio:** cada usuário comum só lista seus próprios pedidos.
-* **Evidência no código:** `GET /pedidos/listar/pedido-usuario/`.
-* **Status:** Confirmado.
+  * Inglês: OWASP API3:2023 — Broken Object Property Level Authorization.
+  * Português: OWASP API Security Top 10, quando houver tradução confiável.
 
 ---
 
-# 6. Requisitos funcionais
+## RM-003 — Diferenciar access token e refresh token nas rotas protegidas
 
-| ID     | Requisito funcional                                         | Descrição                                                                                         | Prioridade | Evidência                                   |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------- |
-| RF-001 | O sistema deve permitir cadastro de usuários.               | Deve receber nome, email, senha, ativo e admin, validar duplicidade de email e persistir usuário. | Alta       | `auth_routes.py`, `schemas.py`, `models.py` |
-| RF-002 | O sistema deve criptografar senhas.                         | A senha deve ser salva usando hash bcrypt.                                                        | Alta       | `auth_routes.py`, `dependencies.py`         |
-| RF-003 | O sistema deve autenticar usuários por email e senha.       | Deve validar credenciais e retornar tokens JWT.                                                   | Alta       | `auth_routes.py`                            |
-| RF-004 | O sistema deve emitir access token JWT.                     | O token deve conter identificador do usuário e expiração.                                         | Alta       | `auth_routes.py`                            |
-| RF-005 | O sistema deve emitir refresh token.                        | O login JSON deve retornar refresh token com duração maior.                                       | Média      | `auth_routes.py`                            |
-| RF-006 | O sistema deve permitir renovação de access token.          | Usuário autenticado deve conseguir obter novo access token.                                       | Média      | `auth_routes.py`                            |
-| RF-007 | O sistema deve proteger rotas de pedidos.                   | Todas as rotas sob `/pedidos` devem exigir Bearer Token.                                          | Alta       | `order_routes.py`, `dependencies.py`        |
-| RF-008 | O sistema deve permitir criar pedido.                       | Deve criar pedido para um usuário com status inicial `PENDENTE`.                                  | Alta       | `order_routes.py`, `models.py`              |
-| RF-009 | O sistema deve permitir adicionar item ao pedido.           | Deve adicionar quantidade, sabor, tamanho e preço unitário.                                       | Alta       | `order_routes.py`, `models.py`              |
-| RF-010 | O sistema deve recalcular preço do pedido.                  | O preço total deve ser soma de quantidade vezes preço unitário dos itens.                         | Alta       | `models.py`, `order_routes.py`              |
-| RF-011 | O sistema deve permitir remover item do pedido.             | Deve remover item e recalcular o preço total.                                                     | Alta       | `order_routes.py`                           |
-| RF-012 | O sistema deve permitir cancelar pedido.                    | Deve alterar status para `CANCELADO`.                                                             | Média      | `order_routes.py`                           |
-| RF-013 | O sistema deve permitir finalizar pedido.                   | Deve alterar status para `FINALIZADO`.                                                            | Média      | `order_routes.py`                           |
-| RF-014 | O sistema deve permitir visualizar pedido.                  | Deve retornar pedido e quantidade de itens.                                                       | Alta       | `order_routes.py`                           |
-| RF-015 | O sistema deve permitir listar pedidos do próprio usuário.  | Deve filtrar pedidos pelo usuário autenticado.                                                    | Alta       | `order_routes.py`                           |
-| RF-016 | O sistema deve permitir listagem administrativa de pedidos. | Apenas usuários admin devem listar todos os pedidos.                                              | Média      | `order_routes.py`                           |
-| RF-017 | O sistema deve validar autorização por dono ou admin.       | Modificações/consultas de pedido devem ser permitidas apenas ao dono ou admin.                    | Alta       | `order_routes.py`                           |
-| RF-018 | O sistema deve possuir migrations de banco.                 | Deve usar Alembic para criação das tabelas.                                                       | Média      | `alembic/`                                  |
+* **Categoria:** Segurança / Autenticação
+* **Prioridade:** Alta
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O token carrega `"type": "access"` ou `"type": "refresh"`, mas `obter_usuario_atual` não valida se o token usado nas rotas protegidas é realmente do tipo `access`.
+* **Por que melhorar:** Refresh token deve servir apenas para renovar tokens, não para acessar endpoints protegidos.
+* **Requisito de melhoria:** “O sistema deve aceitar apenas access token em rotas protegidas e aceitar refresh token somente na rota de renovação.”
+* **Como aplicar de forma simples:**
 
----
+  1. Em `obter_usuario_atual`, decodificar o token.
+  2. Verificar `payload.get("type") == "access"`.
+  3. Se for `refresh`, retornar 401.
+  4. Na rota `/auth/refresh`, validar `type == "refresh"`.
+* **Critério de aceite:** Usar refresh token em `/pedidos/listar` retorna 401; usar access token válido funciona.
+* **Arquivos provavelmente envolvidos:** `services/auth_service.py`, `services/usuario_service.py`, `routes/auth.py`.
+* **O que evitar:** Não tratar access token e refresh token como equivalentes.
+* **Fonte do porquê:** A documentação do FastAPI mostra uso de JWT assinado e com expiração para autenticação; a OWASP reforça que fluxos de autenticação precisam ser bem compreendidos e padronizados. ([FastAPI][1]) ([OWASP][3])
+* **Referências de estudo:**
 
-# 7. Regras de negócio
-
-| ID     | Regra de negócio                                                                | Onde aparece                               | Observação                                                  |
-| ------ | ------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| RN-001 | Um email não deve ser cadastrado mais de uma vez.                               | `auth_routes.py`                           | Confirmado no código, mas não há constraint única no banco. |
-| RN-002 | A senha deve ser armazenada como hash bcrypt.                                   | `auth_routes.py`, `dependencies.py`        | Confirmado                                                  |
-| RN-003 | Login só deve ser aceito se email existir e senha conferir.                     | `auth_routes.py`                           | Confirmado                                                  |
-| RN-004 | JWT deve carregar o ID do usuário no campo `sub`.                               | `auth_routes.py`                           | Confirmado                                                  |
-| RN-005 | JWT deve possuir expiração.                                                     | `auth_routes.py`                           | Confirmado                                                  |
-| RN-006 | Rotas de pedidos exigem autenticação.                                           | `order_routes.py`                          | Confirmado                                                  |
-| RN-007 | Pedido novo começa com status `PENDENTE`.                                       | `models.py`                                | Confirmado                                                  |
-| RN-008 | Pedido novo começa com preço `0`.                                               | `models.py`                                | Confirmado                                                  |
-| RN-009 | O preço do pedido é calculado por soma dos itens.                               | `models.py`                                | Confirmado                                                  |
-| RN-010 | Cada item calcula subtotal por `preco_unitario * quantidade`.                   | `models.py`                                | Confirmado                                                  |
-| RN-011 | Apenas admin ou dono do pedido pode cancelar pedido.                            | `order_routes.py`                          | Confirmado                                                  |
-| RN-012 | Apenas admin ou dono do pedido pode finalizar pedido.                           | `order_routes.py`                          | Confirmado                                                  |
-| RN-013 | Apenas admin ou dono do pedido pode visualizar pedido.                          | `order_routes.py`                          | Confirmado                                                  |
-| RN-014 | Apenas admin ou dono do pedido pode adicionar/remover item.                     | `order_routes.py`                          | Confirmado                                                  |
-| RN-015 | Apenas admin pode listar todos os pedidos.                                      | `order_routes.py`                          | Confirmado                                                  |
-| RN-016 | Usuário comum só lista seus próprios pedidos na rota `/listar/pedido-usuario/`. | `order_routes.py`                          | Confirmado                                                  |
-| RN-017 | Status conhecidos são `PENDENTE`, `CANCELADO` e `FINALIZADO`.                   | `models.py`, `order_routes.py`, `banco.db` | Confirmado                                                  |
-| RN-018 | O campo `ativo` existe, mas não é usado para bloquear login ou acesso.          | `models.py`, `auth_routes.py`              | Confirmado como lacuna                                      |
-| RN-019 | O cliente consegue enviar `admin` no cadastro.                                  | `schemas.py`, `auth_routes.py`             | Confirmado; risco de segurança                              |
-| RN-020 | Ao criar pedido, o ID do usuário vem do corpo da requisição.                    | `schemas.py`, `order_routes.py`            | Confirmado; risco de autorização                            |
+  * Inglês: FastAPI OAuth2/JWT; OWASP API2:2023 Broken Authentication.
+  * Português: Auth0 Brasil — JWT em Python.
 
 ---
 
-# 8. Requisitos não funcionais
+## RM-004 — Calcular expiração do token no momento da criação
 
-| ID      | Requisito não funcional            | Descrição                                                                           | Evidência                                     | Prioridade |
-| ------- | ---------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- | ---------- |
-| RNF-001 | Segurança de senhas                | Senhas devem ser protegidas com bcrypt.                                             | `dependencies.py`, `auth_routes.py`           | Alta       |
-| RNF-002 | Autenticação por token             | Rotas protegidas devem usar Bearer Token JWT.                                       | `dependencies.py`, `order_routes.py`          | Alta       |
-| RNF-003 | Configuração sensível via ambiente | Segredo JWT, algoritmo e expiração devem vir de variáveis de ambiente.              | `.env`, `dependencies.py`                     | Alta       |
-| RNF-004 | Não exposição de segredos          | `.env`, tokens e banco com hashes não devem ser versionados/publicados.             | `.env`, `teste.py`, `banco.db`                | Alta       |
-| RNF-005 | Persistência local                 | A aplicação deve persistir dados em SQLite.                                         | `models.py`, `banco.db`                       | Média      |
-| RNF-006 | Migração de schema                 | Schema deve ser reproduzível via Alembic.                                           | `alembic/`                                    | Média      |
-| RNF-007 | Manutenibilidade                   | O sistema deveria separar regras de negócio de rotas.                               | Rotas acessam ORM diretamente                 | Média      |
-| RNF-008 | Tratamento de erros HTTP           | Erros de autenticação, autorização e não encontrado devem retornar HTTPException.   | `auth_routes.py`, `order_routes.py`           | Alta       |
-| RNF-009 | Observabilidade                    | Aplicação deveria usar logs estruturados.                                           | Não encontrado; há apenas `print` em uma rota | Média      |
-| RNF-010 | Performance                        | Listagens deveriam ter paginação.                                                   | `GET /pedidos/listar` usa `.all()`            | Média      |
-| RNF-011 | Escalabilidade                     | SQLite local é adequado para desenvolvimento, mas limitado para produção.           | `models.py`                                   | Média      |
-| RNF-012 | Portabilidade                      | Projeto deve rodar em Python 3.12.13.                                               | `.python-version`                             | Média      |
-| RNF-013 | Configuração por ambiente          | URL do banco deveria ser configurável por ambiente.                                 | Banco hardcoded em `models.py`                | Média      |
-| RNF-014 | Idempotência                       | Operações de status deveriam tratar chamadas repetidas.                             | Não encontrado                                | Baixa      |
-| RNF-015 | Testabilidade                      | Projeto deveria ter testes automatizados.                                           | Não encontrado                                | Alta       |
-| RNF-016 | Usabilidade da API                 | API deve expor documentação Swagger automática do FastAPI.                          | Inferido pelo uso de FastAPI                  | Média      |
-| RNF-017 | Validação de entrada               | Quantidade e preço deveriam ter validações mínimas.                                 | Schemas aceitam tipos, mas não limites        | Alta       |
-| RNF-018 | Autorização robusta                | Usuário comum não deve poder criar pedido para outro usuário nem criar conta admin. | Lacuna em `schemas.py` e `order_routes.py`    | Alta       |
+* **Categoria:** Segurança / Autenticação
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `expiracao_token` e `refresh_expiracao_token` são atributos de classe calculados quando a classe `AuthService` é carregada, não quando cada token é criado.
+* **Por que melhorar:** Depois de algum tempo de aplicação no ar, novos tokens podem nascer com expiração antiga.
+* **Requisito de melhoria:** “O sistema deve calcular a expiração de cada token no momento exato em que o token é criado.”
+* **Como aplicar de forma simples:**
 
----
+  1. Remover `expiracao_token` e `refresh_expiracao_token` como atributos de classe.
+  2. Dentro de `criar_token`, calcular `datetime.now(timezone.utc) + timedelta(...)`.
+  3. Criar testes para confirmar que dois tokens emitidos em momentos diferentes têm `exp` diferente.
+* **Critério de aceite:** Um token gerado agora recebe expiração futura correta, mesmo que a aplicação esteja rodando há horas.
+* **Arquivos provavelmente envolvidos:** `services/auth_service.py`, testes futuros.
+* **O que evitar:** Não usar datas dinâmicas como atributo estático de classe.
+* **Fonte do porquê:** JWT usa claims assinadas e expiração para limitar validade do token; a documentação do FastAPI explica que a expiração é parte importante do fluxo de segurança. ([FastAPI][1])
+* **Referências de estudo:**
 
-# 9. Banco de dados e persistência
-
-## Tipo de banco
-
-* **Banco identificado:** SQLite
-* **Arquivo:** `banco.db`
-* **URL no código:** hardcoded em `models.py`
-* **Migrations:** Alembic configurado em `alembic.ini` e `/alembic`
-
-## Tabelas/modelos
-
-### Tabela: `usuarios`
-
-| Campo   | Tipo    | Obrigatório    | Observação                                   |
-| ------- | ------- | -------------- | -------------------------------------------- |
-| `id`    | Integer | Sim            | Primary key autoincrement                    |
-| `nome`  | String  | Não confirmado | Nome do usuário                              |
-| `email` | String  | Sim            | Não há unique constraint                     |
-| `senha` | String  | Não confirmado | Hash da senha                                |
-| `ativo` | Boolean | Não confirmado | Campo existe, mas não é usado nas validações |
-| `admin` | Boolean | Não confirmado | Define permissão administrativa              |
-
-### Tabela: `pedidos`
-
-| Campo     | Tipo    | Obrigatório    | Observação                                            |
-| --------- | ------- | -------------- | ----------------------------------------------------- |
-| `id`      | Integer | Sim            | Primary key autoincrement                             |
-| `status`  | String  | Não confirmado | Valores usados: `PENDENTE`, `CANCELADO`, `FINALIZADO` |
-| `usuario` | Integer | Não confirmado | FK para `usuarios.id`                                 |
-| `preco`   | Float   | Não confirmado | Total do pedido                                       |
-
-### Tabela: `itens_pedido`
-
-| Campo            | Tipo    | Obrigatório    | Observação                                      |
-| ---------------- | ------- | -------------- | ----------------------------------------------- |
-| `id`             | Integer | Sim            | Primary key autoincrement                       |
-| `quantidade`     | Integer | Não confirmado | Quantidade do item                              |
-| `sabor`          | String  | Não confirmado | Sabor do item; sugere domínio de pizza/delivery |
-| `tamanho`        | String  | Não confirmado | Tamanho do item                                 |
-| `preco_unitario` | Float   | Não confirmado | Preço unitário                                  |
-| `pedido`         | Integer | Não confirmado | FK para `pedidos.id`                            |
-
-## Relacionamentos
-
-| Relacionamento               | Descrição                                          | Status         |
-| ---------------------------- | -------------------------------------------------- | -------------- |
-| `usuarios` 1:N `pedidos`     | Um usuário pode ter vários pedidos.                | Confirmado     |
-| `pedidos` 1:N `itens_pedido` | Um pedido pode ter vários itens.                   | Confirmado     |
-| Cascade ORM                  | `Pedido.itens` possui `cascade="all, delete"`.     | Confirmado     |
-| Cascade no banco             | Não há `ON DELETE CASCADE` explícito na migration. | Não confirmado |
-
-## Dados existentes
-
-O arquivo `banco.db` contém dados locais:
-
-| Tabela            | Quantidade encontrada |
-| ----------------- | --------------------: |
-| `usuarios`        |                     7 |
-| `pedidos`         |                     2 |
-| `itens_pedido`    |                     2 |
-| `alembic_version` |                     1 |
-
-Observação: o banco contém registros de usuários e hashes de senha. Valores não foram expostos por segurança.
-
-## Migrations
-
-* Existe migration inicial criando `usuarios`, `pedidos` e `itens_pedido`.
-* Existe arquivo `.pyc` de uma possível migration adicional em `__pycache__`, mas o arquivo `.py` correspondente não foi encontrado.
-* A versão registrada no banco é a migration inicial `e9b4b5830922`.
-
-## Operações CRUD identificadas
-
-| Entidade   | Create | Read                    | Update              | Delete         |
-| ---------- | ------ | ----------------------- | ------------------- | -------------- |
-| Usuário    | Sim    | Indireto no login/token | Não encontrado      | Não encontrado |
-| Pedido     | Sim    | Sim                     | Sim, status e preço | Não encontrado |
-| ItemPedido | Sim    | Indireto via pedido     | Não encontrado      | Sim            |
+  * Inglês: FastAPI OAuth2/JWT; PyJWT documentation.
+  * Português: Auth0 Brasil — JWT em Python.
 
 ---
 
-# 10. APIs, rotas e integrações
+## RM-005 — Tratar exceções de token expirado ou inválido de forma padronizada
 
-## APIs expostas
+* **Categoria:** Segurança / Tratamento de erros
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `AuthService.decodificar_token` chama `jwt.decode`, mas nem sempre as exceções de token expirado/inválido são capturadas no ponto correto. A rota `/auth/refresh` pode devolver erro não padronizado.
+* **Por que melhorar:** A API deve retornar 401 previsível, sem stack trace e sem detalhes internos.
+* **Requisito de melhoria:** “O sistema deve retornar erro 401 padronizado para token inválido, expirado ou de tipo incorreto.”
+* **Como aplicar de forma simples:**
 
-| Método | Rota                                            | Descrição                          | Entrada                         | Saída                             | Autenticação |
-| ------ | ----------------------------------------------- | ---------------------------------- | ------------------------------- | --------------------------------- | ------------ |
-| GET    | `/auth/`                                        | Rota simples de autenticação/home. | Nenhuma                         | Mensagem                          | Não          |
-| POST   | `/auth/criar_conta`                             | Cria usuário.                      | `UsuarioSchema`                 | Mensagem                          | Não          |
-| POST   | `/auth/login`                                   | Login por JSON.                    | `LoginSchema`                   | Access token, refresh token, tipo | Não          |
-| POST   | `/auth/login-form`                              | Login via formulário OAuth2.       | `username`, `password`          | Access token, tipo                | Não          |
-| GET    | `/auth/refresh`                                 | Gera novo access token.            | Bearer Token                    | Access token, tipo                | Sim          |
-| GET    | `/pedidos/`                                     | Rota simples de pedidos/home.      | Bearer Token                    | Mensagem                          | Sim          |
-| POST   | `/pedidos/pedido`                               | Cria pedido.                       | `PedidoSchema`                  | Mensagem com ID                   | Sim          |
-| POST   | `/pedidos/pedido/cancelar/{id_pedido}`          | Cancela pedido.                    | Path param `id_pedido`          | Mensagem e pedido                 | Sim          |
-| GET    | `/pedidos/listar`                               | Lista todos os pedidos.            | Bearer Token admin              | Lista de pedidos                  | Sim/admin    |
-| POST   | `/pedidos/pedido/adicionar-item/{id_pedido}`    | Adiciona item ao pedido.           | Path param + `ItemPedidoSchema` | Mensagem, item ID, preço          | Sim          |
-| POST   | `/pedidos/pedido/remover-item/{id_item_pedido}` | Remove item do pedido.             | Path param `id_item_pedido`     | Mensagem, quantidade, pedido      | Sim          |
-| POST   | `/pedidos/pedido/finalizar/{id_pedido}`         | Finaliza pedido.                   | Path param `id_pedido`          | Mensagem e pedido                 | Sim          |
-| GET    | `/pedidos/pedido/{id_pedido}`                   | Visualiza pedido.                  | Path param `id_pedido`          | Quantidade de itens e pedido      | Sim          |
-| GET    | `/pedidos/listar/pedido-usuario/`               | Lista pedidos do usuário logado.   | Bearer Token                    | Lista de pedidos                  | Sim          |
+  1. Capturar exceções do PyJWT, como token expirado e token inválido.
+  2. Retornar `HTTPException(status_code=401, detail="Token inválido ou expirado")`.
+  3. Aplicar o mesmo padrão em access e refresh.
+* **Critério de aceite:** Token expirado, token malformado e refresh token usado no lugar errado retornam 401.
+* **Arquivos provavelmente envolvidos:** `services/auth_service.py`, `services/usuario_service.py`.
+* **O que evitar:** Não usar `except Exception` genérico sem log e sem tratamento específico.
+* **Fonte do porquê:** PyJWT é a biblioteca usada para codificar/decodificar JWT, e JWT é um padrão de claims assinadas entre partes. ([pyjwt.readthedocs.io][4])
+* **Referências de estudo:**
 
-## Integrações externas consumidas
-
-| Integração                                     | Finalidade                    | Autenticação   | Arquivos relacionados | Observações                                    |
-| ---------------------------------------------- | ----------------------------- | -------------- | --------------------- | ---------------------------------------------- |
-| API local `http://localhost:8000/auth/refresh` | Teste manual de refresh token | Bearer Token   | `teste.py`            | Não é integração externa real; é chamada local |
-| Serviços externos                              | Não encontrado                | Não encontrado | Código                | Não há consumo confirmado de APIs externas     |
+  * Inglês: PyJWT documentation.
+  * Português: Auth0 Brasil — Como lidar com JWTs em Python.
 
 ---
 
-# 11. Fluxos principais da aplicação
+## RM-006 — Criar schemas separados para criação, resposta e administração de usuário
 
-## Fluxo 1 — Cadastro de usuário
+* **Categoria:** Validação / Segurança
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `UsuarioSchema` recebe `senha`, `ativo` e `admin`. `UsuarioResponseSchema` remove a senha, o que é bom, mas o schema de entrada ainda permite campos sensíveis.
+* **Por que melhorar:** Schemas separados reduzem risco de mass assignment e deixam claro o que o cliente pode enviar.
+* **Requisito de melhoria:** “O sistema deve possuir schemas específicos para entrada pública, resposta pública e operações administrativas.”
+* **Como aplicar de forma simples:**
 
-1. Cliente envia `POST /auth/criar_conta`.
-2. API recebe `nome`, `email`, `senha`, `ativo`, `admin`.
-3. Sistema consulta se já existe usuário com o mesmo email.
-4. Se existir, retorna erro.
-5. Se não existir, criptografa a senha.
-6. Sistema cria o usuário no SQLite.
-7. API retorna mensagem de sucesso.
+  1. Criar `UsuarioCreateSchema` com `nome`, `email`, `senha`.
+  2. Criar `UsuarioResponseSchema` com `id`, `nome`, `email`, `ativo`.
+  3. Criar `UsuarioAdminUpdateSchema` futuramente, apenas se houver rota admin.
+* **Critério de aceite:** A rota pública de cadastro não aceita `admin` nem depende de `ativo`.
+* **Arquivos provavelmente envolvidos:** `schemas.py`, `routes/auth.py`.
+* **O que evitar:** Não reutilizar o mesmo schema para todos os casos.
+* **Fonte do porquê:** Pydantic é usado para declarar e validar a forma dos dados por tipos Python, o que favorece contratos claros de entrada e saída. ([pydantic.dev][5])
+* **Referências de estudo:**
 
-### Exceções
-
-* Email já cadastrado retorna `HTTPException`.
-* Dados inválidos retornam validação padrão 422 do FastAPI/Pydantic.
-
-## Fluxo 2 — Login e emissão de token
-
-1. Cliente envia `POST /auth/login` com email e senha.
-2. Sistema busca usuário pelo email.
-3. Sistema valida senha com bcrypt.
-4. Se credenciais forem válidas, gera access token.
-5. Também gera refresh token.
-6. API retorna tokens e `token_type=Bearer`.
-
-### Exceções
-
-* Usuário inexistente ou senha inválida retorna erro.
-* Falha de configuração de `.env` pode quebrar a criação/validação de token.
-
-## Fluxo 3 — Login via formulário OAuth2
-
-1. Cliente envia `POST /auth/login-form`.
-2. Campo `username` é interpretado como email.
-3. Campo `password` é interpretado como senha.
-4. Sistema autentica usuário.
-5. API retorna access token.
-
-### Uso provável
-
-Esse fluxo alimenta o mecanismo `OAuth2PasswordBearer` usado pelo Swagger/OpenAPI do FastAPI.
-
-## Fluxo 4 — Criar pedido
-
-1. Cliente autenticado chama `POST /pedidos/pedido`.
-2. API recebe ID do usuário no corpo.
-3. Sistema cria pedido com status `PENDENTE` e preço `0`.
-4. Sistema salva no banco.
-5. API retorna ID do pedido criado.
-
-### Ponto de atenção
-
-O código não confirma que o ID do usuário no corpo pertence ao usuário autenticado.
-
-## Fluxo 5 — Adicionar item ao pedido
-
-1. Cliente autenticado chama `POST /pedidos/pedido/adicionar-item/{id_pedido}`.
-2. Sistema busca o pedido.
-3. Sistema verifica se o usuário é admin ou dono do pedido.
-4. Sistema cria item com quantidade, sabor, tamanho e preço unitário.
-5. Sistema recalcula o preço total do pedido.
-6. API retorna item criado e preço atualizado.
-
-### Exceções
-
-* Pedido inexistente deveria retornar erro, mas há falha no código porque falta `raise` em um `HTTPException`.
-
-## Fluxo 6 — Remover item do pedido
-
-1. Cliente autenticado chama `POST /pedidos/pedido/remover-item/{id_item_pedido}`.
-2. Sistema busca item.
-3. Sistema busca pedido associado.
-4. Sistema verifica autorização.
-5. Sistema remove item.
-6. Sistema recalcula preço do pedido.
-7. API retorna pedido atualizado.
-
-### Exceções
-
-* Se o item não existir, há risco de erro 500 porque o código acessa o pedido antes de validar se o item existe.
-
-## Fluxo 7 — Cancelar ou finalizar pedido
-
-1. Cliente autenticado chama rota de cancelar ou finalizar.
-2. Sistema busca pedido pelo ID.
-3. Sistema valida se usuário é admin ou dono.
-4. Sistema altera status para `CANCELADO` ou `FINALIZADO`.
-5. API retorna mensagem e pedido.
-
-## Fluxo 8 — Listar pedidos
-
-### Listagem administrativa
-
-1. Cliente chama `GET /pedidos/listar`.
-2. Sistema identifica usuário pelo token.
-3. Se usuário não for admin, retorna erro.
-4. Se for admin, retorna todos os pedidos.
-
-### Listagem do próprio usuário
-
-1. Cliente chama `GET /pedidos/listar/pedido-usuario/`.
-2. Sistema identifica usuário pelo token.
-3. Sistema busca pedidos onde `Pedido.usuario == usuario.id`.
-4. API retorna lista.
+  * Inglês: Pydantic documentation; FastAPI Request Body.
+  * Português: FastAPI em português — Corpo da requisição.
 
 ---
 
-# 12. Tratamento de erros
+## RM-007 — Validar email, senha, quantidade e preço
 
-## Exceções tratadas
+* **Categoria:** Validação de dados
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `email` é `str`, senha aceita qualquer string, `quantidade` e `preco_unitario` não têm validações mínimas.
+* **Por que melhorar:** Evita dados inválidos no banco, como email malformado, preço negativo ou quantidade zero.
+* **Requisito de melhoria:** “O sistema deve validar os dados de entrada antes de salvar no banco.”
+* **Como aplicar de forma simples:**
 
-| Situação                                               | Comportamento                                | Arquivo           | Status     |
-| ------------------------------------------------------ | -------------------------------------------- | ----------------- | ---------- |
-| Token inválido ou expirado                             | Retorna 401 com mensagem de acesso negado    | `dependencies.py` | Confirmado |
-| Usuário do token não existe                            | Retorna 401                                  | `dependencies.py` | Confirmado |
-| Login inválido                                         | Retorna erro de usuário não encontrado       | `auth_routes.py`  | Confirmado |
-| Email já cadastrado                                    | Retorna erro                                 | `auth_routes.py`  | Confirmado |
-| Pedido não encontrado em cancelar/finalizar/visualizar | Retorna 400                                  | `order_routes.py` | Confirmado |
-| Usuário sem autorização                                | Retorna 401                                  | `order_routes.py` | Confirmado |
-| Payload inválido                                       | FastAPI/Pydantic retorna 422 automaticamente | FastAPI           | Inferido   |
+  1. Usar `EmailStr` para email.
+  2. Definir senha com tamanho mínimo.
+  3. Usar `Field(gt=0)` para `quantidade`.
+  4. Usar `Field(ge=0)` ou `Field(gt=0)` para `preco_unitario`.
+  5. Validar tamanho/sabor com tamanho mínimo e máximo.
+* **Critério de aceite:** Requisições com email inválido, quantidade negativa ou preço negativo retornam 422.
+* **Arquivos provavelmente envolvidos:** `schemas.py`.
+* **O que evitar:** Não validar regra de negócio apenas no front-end.
+* **Fonte do porquê:** Pydantic valida dados a partir de tipos e campos declarados, e FastAPI usa esses schemas para validar entradas automaticamente. ([pydantic.dev][5])
+* **Referências de estudo:**
 
-## Falhas ou inconsistências encontradas
-
-| Problema                                                            | Onde                            | Impacto                                               |
-| ------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------- |
-| `HTTPException` sem `raise` ao adicionar item se pedido não existe. | `order_routes.py`               | Pode gerar erro 500 em vez de erro controlado.        |
-| `HTTPException` sem `raise` ao remover item se item não existe.     | `order_routes.py`               | Pode gerar erro 500.                                  |
-| `item_pedido.pedido` é acessado antes de validar se o item existe.  | `order_routes.py`               | Erro 500 em item inexistente.                         |
-| Cadastro permite enviar `admin`.                                    | `schemas.py`, `auth_routes.py`  | Usuário pode se tornar admin se rota estiver pública. |
-| Criar pedido aceita ID de usuário no corpo.                         | `schemas.py`, `order_routes.py` | Usuário autenticado pode criar pedido para outro ID.  |
-| Status é string livre.                                              | `models.py`, `order_routes.py`  | Risco de status inválido em futuras alterações.       |
-| Campo `ativo` não é verificado no login.                            | `models.py`, `auth_routes.py`   | Usuário inativo poderia autenticar.                   |
-| Não há logs estruturados.                                           | Código                          | Dificulta auditoria e diagnóstico.                    |
-| Não há retries.                                                     | Código                          | Falhas externas não aplicável; banco local sem retry. |
+  * Inglês: Pydantic Fields and Validators.
+  * Português: FastAPI em português — Validação de dados.
 
 ---
 
-# 13. Testes existentes
+## RM-008 — Corrigir tipo da coluna `quantidade`
 
-## Framework de testes
+* **Categoria:** Banco / Modelagem
+* **Prioridade:** Alta
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Em `models.py`, `quantidade` está anotado como `Mapped[int]`, mas a coluna foi criada como `String`.
+* **Por que melhorar:** Quantidade é número inteiro. Guardar como texto obriga conversões e aumenta risco de erro.
+* **Requisito de melhoria:** “O sistema deve armazenar quantidade de item como inteiro no banco de dados.”
+* **Como aplicar de forma simples:**
 
-* **pytest:** não encontrado.
-* **unittest:** não encontrado.
-* **Pasta `tests/`:** não encontrada.
+  1. Alterar `mapped_column(String)` para `mapped_column(Integer)`.
+  2. Criar migration Alembic.
+  3. Em SQLite, revisar a migration porque alterações de tipo podem exigir `batch_alter_table`.
+  4. Testar criação de item e cálculo de preço.
+* **Critério de aceite:** A coluna `ItensPedidos.quantidade` fica como inteiro e o cálculo do pedido não precisa converter `int(item.quantidade)`.
+* **Arquivos provavelmente envolvidos:** `models.py`, `alembic/versions/`, `services/pedido_service.py`.
+* **O que evitar:** Não alterar banco manualmente sem migration.
+* **Fonte do porquê:** SQLAlchemy 2.x documenta o uso moderno de `Mapped`, `mapped_column` e relacionamentos declarativos tipados. ([docs.sqlalchemy.org][6])
+* **Referências de estudo:**
 
-## Arquivo de teste/manual
-
-Existe `teste.py`, mas ele é um script manual, não um teste automatizado.
-
-| Item               | Valor                                    |
-| ------------------ | ---------------------------------------- |
-| Arquivo            | `teste.py`                               |
-| Biblioteca         | `requests`                               |
-| Endpoint chamado   | `GET http://localhost:8000/auth/refresh` |
-| Autenticação       | Bearer Token hardcoded                   |
-| Resultado esperado | Imprimir JSON da resposta                |
-
-## O que o script revela
-
-* Existe expectativa de que `/auth/refresh` retorne um novo token.
-* A aplicação deve estar rodando localmente na porta `8000`.
-* O token usado no arquivo deve ser tratado como sensível.
-
-## Cenários não cobertos
-
-* Cadastro de usuário.
-* Login com sucesso e erro.
-* Criação de pedido.
-* Autorização por dono/admin.
-* Adição e remoção de item.
-* Recalcular preço.
-* Cancelamento/finalização.
-* Erros de pedido inexistente.
-* Expiração de token.
-* Usuário inativo.
-* Usuário comum tentando listar todos os pedidos.
-
-## Como executar o teste manual
-
-```bash
-cd DeliveryFastAPI
-python teste.py
-```
-
-Pré-condições:
-
-* API rodando em `localhost:8000`.
-* Token válido no script.
-* Dependência `requests` instalada.
+  * Inglês: SQLAlchemy 2.0 ORM Mapped Classes; Alembic autogenerate.
+  * Português: Artigos introdutórios sobre SQLAlchemy 2.x e Alembic.
 
 ---
 
-# 14. Segurança e dados sensíveis
+## RM-009 — Adicionar rollback em operações de escrita no banco
 
-## Itens sensíveis identificados
+* **Categoria:** Banco / Tratamento de erros
+* **Prioridade:** Alta
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Os services usam `commit()`, mas em caso de erro não há `rollback()`. Em alguns pontos há `except Exception` retornando erro genérico.
+* **Por que melhorar:** Depois de falha em transação, a sessão pode ficar em estado inconsistente.
+* **Requisito de melhoria:** “O sistema deve executar rollback em operações de escrita quando ocorrer erro antes ou durante o commit.”
+* **Como aplicar de forma simples:**
 
-| Item                   | Onde       | Observação                                       |
-| ---------------------- | ---------- | ------------------------------------------------ |
-| `SECRET_KEY`           | `.env`     | Valor não exposto                                |
-| Configurações de JWT   | `.env`     | Valores não expostos                             |
-| Token JWT hardcoded    | `teste.py` | Valor não exposto; deve ser removido             |
-| Hashes de senha        | `banco.db` | Valores não expostos                             |
-| Banco com dados locais | `banco.db` | Não deveria ser publicado em repositório público |
+  1. Em cada `try` de escrita, no `except`, chamar `self.db.rollback()`.
+  2. Capturar exceções esperadas, como erro de integridade.
+  3. Retornar erro controlado.
+  4. Criar teste de email duplicado.
+* **Critério de aceite:** Um erro de banco não quebra as próximas operações usando a sessão.
+* **Arquivos provavelmente envolvidos:** `services/usuario_service.py`, `services/pedido_service.py`.
+* **O que evitar:** Não esconder todos os erros com `except Exception` sem rollback e sem log.
+* **Fonte do porquê:** A documentação do SQLAlchemy descreve `rollback()` como forma de reverter a transação atual e liberar recursos de conexão. ([docs.sqlalchemy.org][7])
+* **Referências de estudo:**
 
-## Autenticação
-
-* JWT com `python-jose`.
-* Bearer Token via `OAuth2PasswordBearer`.
-* Login por JSON e por formulário OAuth2.
-* Senha validada com bcrypt/passlib.
-
-## Autorização
-
-* Rotas `/pedidos` exigem token.
-* Algumas operações verificam:
-
-  * usuário admin; ou
-  * usuário dono do pedido.
-
-## Riscos identificados
-
-| Risco                                        | Severidade       | Descrição                                            |
-| -------------------------------------------- | ---------------- | ---------------------------------------------------- |
-| `.env` incluído no projeto                   | Alta             | Segredos não devem ser empacotados/versionados.      |
-| Token hardcoded em `teste.py`                | Alta             | Token pode permitir acesso indevido enquanto válido. |
-| `banco.db` incluído                          | Alta             | Pode expor dados pessoais e hashes de senha.         |
-| Cliente pode definir `admin` no cadastro     | Alta             | Escalada de privilégio.                              |
-| Usuário pode criar pedido para outro usuário | Alta             | Falha de autorização.                                |
-| Ausência de unique constraint em email       | Média            | Corrida/conflito pode permitir duplicidade.          |
-| Ausência de política de senha                | Média            | Senhas fracas podem ser aceitas.                     |
-| Campo `ativo` não usado                      | Média            | Usuário inativo continua podendo logar.              |
-| Sem rate limiting                            | Média            | Login vulnerável a tentativas repetidas.             |
-| Sem logs/auditoria                           | Média            | Difícil rastrear ações sensíveis.                    |
-| Sem CORS explícito                           | Baixa/Média      | Depende do ambiente de consumo.                      |
-| Sem HTTPS configurado                        | Alta em produção | Deve ser tratado na infraestrutura/deploy.           |
+  * Inglês: SQLAlchemy Session Basics.
+  * Português: Tutoriais de SQLAlchemy Session.
 
 ---
 
-# 15. Requisitos para reconstruir aplicação semelhante
+## RM-010 — Corrigir rotas duplicadas e padronizar URLs
 
-## Stack sugerida
+* **Categoria:** Organização / API Design
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O router de pedidos já tem `prefix="/pedidos"`, mas algumas rotas incluem novamente `/pedidos/pedido/...`, gerando caminhos como `/pedidos/pedidos/pedido/finalizar/{id_pedido}`.
+* **Por que melhorar:** URLs inconsistentes confundem quem usa a API e dificultam documentação/testes.
+* **Requisito de melhoria:** “O sistema deve expor rotas de pedidos com padrão simples e sem prefixos duplicados.”
+* **Como aplicar de forma simples:**
 
-* **Python:** 3.12+
-* **Framework:** FastAPI
-* **Banco:** SQLite para desenvolvimento; PostgreSQL recomendado para produção
-* **ORM:** SQLAlchemy
-* **Migrations:** Alembic
-* **Validação:** Pydantic
-* **Autenticação:** JWT com `python-jose`
-* **Hash de senha:** passlib + bcrypt
-* **Configuração:** `.env` + Pydantic Settings
-* **Infraestrutura:** Uvicorn; opcionalmente Docker
-* **Deploy:** Render, Railway, Fly.io, VPS, Azure App Service ou container
+  1. Manter `prefix="/pedidos"`.
+  2. Alterar finalizar para `PUT /pedido/{id_pedido}/finalizar` ou `PUT /{id_pedido}/finalizar`.
+  3. Alterar cancelar para padrão equivalente.
+  4. Atualizar README e testes.
+* **Critério de aceite:** O Swagger mostra rotas sem duplicação de `/pedidos/pedidos`.
+* **Arquivos provavelmente envolvidos:** `routes/orders.py`, `README.md`, testes.
+* **O que evitar:** Não misturar singular/plural sem padrão.
+* **Fonte do porquê:** FastAPI recomenda organizar aplicações com `APIRouter` e `include_router`, usando prefixos para agrupar rotas. ([FastAPI][8])
+* **Referências de estudo:**
 
-## Módulos que precisam ser criados
-
-| Módulo             | Responsabilidade                                 | Requisitos relacionados |
-| ------------------ | ------------------------------------------------ | ----------------------- |
-| `main.py`          | Inicializar FastAPI e registrar routers          | RF-001 a RF-018         |
-| `settings.py`      | Carregar variáveis de ambiente e configurações   | RNF-003, RNF-013        |
-| `models.py`        | Definir entidades ORM                            | RF-008 a RF-012         |
-| `schemas.py`       | Definir schemas de entrada/saída                 | RF-001, RF-003, RF-009  |
-| `auth_routes.py`   | Rotas de cadastro/login/refresh                  | RF-001 a RF-006         |
-| `order_routes.py`  | Rotas de pedidos e itens                         | RF-007 a RF-017         |
-| `auth_service.py`  | Hash, autenticação, criação e validação de token | RF-002 a RF-006         |
-| `order_service.py` | Regras de pedido, autorização e cálculo de preço | RF-008 a RF-017         |
-| `database.py`      | Engine, sessão e base ORM                        | RNF-005                 |
-| `migrations/`      | Controle de schema                               | RF-018                  |
-| `tests/`           | Testes automatizados                             | RNF-015                 |
-
-## Ordem recomendada de implementação
-
-1. Configuração do projeto.
-2. Configuração de ambiente e banco.
-3. Modelagem de dados.
-4. Migrations Alembic.
-5. Schemas Pydantic.
-6. Cadastro e login.
-7. Middleware/dependências de autenticação.
-8. Criação e consulta de pedidos.
-9. Adição/remoção de itens.
-10. Cálculo de preço.
-11. Regras de autorização dono/admin.
-12. Finalização/cancelamento de pedido.
-13. Testes automatizados.
-14. Logs e tratamento de erros.
-15. Hardening de segurança.
-16. Docker/deploy.
+  * Inglês: FastAPI Bigger Applications.
+  * Português: FastAPI — Aplicações Maiores.
 
 ---
 
-# 16. Backlog de implementação
+## RM-011 — Criar endpoint `/health`
 
-| ID     | Item                                            | Tipo     | Prioridade | Critério de aceite                                                                                          |
-| ------ | ----------------------------------------------- | -------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| TK-001 | Criar estrutura base FastAPI                    | Técnica  | Alta       | Dado o projeto configurado, quando executar `uvicorn main:app --reload`, então a API deve iniciar sem erro. |
-| TK-002 | Configurar banco e sessão SQLAlchemy            | Técnica  | Alta       | Dado o banco configurado, quando uma rota usar sessão, então a sessão deve abrir e fechar corretamente.     |
-| TK-003 | Criar modelos `Usuario`, `Pedido`, `ItemPedido` | Técnica  | Alta       | Dado Alembic executado, então as três tabelas devem existir.                                                |
-| TK-004 | Criar migrations Alembic                        | Técnica  | Alta       | Dado banco vazio, quando executar `alembic upgrade head`, então o schema deve ser criado.                   |
-| US-001 | Como usuário, quero criar conta                 | História | Alta       | Dado email novo, quando cadastrar, então usuário deve ser salvo com senha criptografada.                    |
-| US-002 | Como usuário, quero fazer login                 | História | Alta       | Dado credenciais válidas, quando autenticar, então devo receber token Bearer.                               |
-| US-003 | Como usuário autenticado, quero criar pedido    | História | Alta       | Dado token válido, quando criar pedido, então pedido deve iniciar como `PENDENTE`.                          |
-| US-004 | Como usuário, quero adicionar itens ao pedido   | História | Alta       | Dado pedido meu, quando adicionar item, então preço total deve ser recalculado.                             |
-| US-005 | Como usuário, quero remover item do pedido      | História | Alta       | Dado item de pedido meu, quando remover, então item deve sair e preço deve atualizar.                       |
-| US-006 | Como usuário, quero visualizar meu pedido       | História | Alta       | Dado pedido meu, quando consultar, então devo ver pedido e itens.                                           |
-| US-007 | Como usuário, quero listar meus pedidos         | História | Alta       | Dado token válido, quando listar, então só meus pedidos devem aparecer.                                     |
-| US-008 | Como admin, quero listar todos os pedidos       | História | Média      | Dado usuário admin, quando listar todos, então todos os pedidos devem ser retornados.                       |
-| US-009 | Como usuário, quero cancelar pedido             | História | Média      | Dado pedido meu, quando cancelar, então status deve virar `CANCELADO`.                                      |
-| US-010 | Como usuário, quero finalizar pedido            | História | Média      | Dado pedido meu, quando finalizar, então status deve virar `FINALIZADO`.                                    |
-| TK-005 | Corrigir autorização no cadastro                | Técnica  | Alta       | Usuário público não deve conseguir criar conta admin livremente.                                            |
-| TK-006 | Corrigir criação de pedido                      | Técnica  | Alta       | Pedido deve ser criado para o usuário autenticado, não para ID arbitrário enviado no body.                  |
-| TK-007 | Adicionar validações de item                    | Técnica  | Alta       | Quantidade e preço devem ser positivos.                                                                     |
-| TK-008 | Adicionar testes automatizados                  | Técnica  | Alta       | Fluxos principais devem passar em pytest.                                                                   |
-| TK-009 | Remover segredos do repositório                 | Técnica  | Alta       | `.env`, tokens e banco local não devem estar versionados.                                                   |
-| TK-010 | Criar `.env.example`                            | Técnica  | Média      | Arquivo deve listar variáveis sem valores reais.                                                            |
-| TK-011 | Adicionar logs estruturados                     | Técnica  | Média      | Erros e operações sensíveis devem gerar logs.                                                               |
-| TK-012 | Adicionar paginação em listagens                | Técnica  | Média      | Listagens devem aceitar `limit` e `offset` ou paginação equivalente.                                        |
+* **Categoria:** Observabilidade / Deploy
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Não existe endpoint de health check.
+* **Por que melhorar:** Plataformas de deploy usam health check para saber se a aplicação está viva.
+* **Requisito de melhoria:** “O sistema deve expor um endpoint `/health` simples para verificar disponibilidade.”
+* **Como aplicar de forma simples:**
+
+  1. Em `main.py`, adicionar `GET /health`.
+  2. Retornar `{"status": "ok"}`.
+  3. Opcionalmente, testar conexão com banco em `/health/db`.
+* **Critério de aceite:** `GET /health` retorna HTTP 200 sem autenticação.
+* **Arquivos provavelmente envolvidos:** `main.py`.
+* **O que evitar:** Não colocar lógica pesada no health check simples.
+* **Fonte do porquê:** Render permite configurar health check path em serviços web, e deploys profissionais costumam depender desse tipo de endpoint. ([Render][9])
+* **Referências de estudo:**
+
+  * Inglês: Render Web Services; FastAPI Deployment.
+  * Português: Guias de deploy FastAPI em PaaS.
 
 ---
 
-# 17. Critérios de aceite gerais
+## RM-012 — Criar `.env.example` e remover segredos do pacote compartilhável
 
-* Deve executar com `uvicorn main:app --reload` a partir da pasta do projeto.
-* Deve expor documentação automática em `/docs`.
-* Deve permitir cadastro de usuário com senha criptografada.
-* Deve impedir cadastro duplicado por email.
-* Deve autenticar usuário por email e senha.
-* Deve retornar token JWT em login bem-sucedido.
-* Deve bloquear acesso às rotas de pedidos sem Bearer Token.
-* Deve criar pedido com status inicial `PENDENTE`.
-* Deve associar pedido ao usuário correto.
-* Deve permitir adicionar item com quantidade, sabor, tamanho e preço unitário.
-* Deve recalcular preço total após adicionar item.
-* Deve recalcular preço total após remover item.
-* Deve permitir visualizar pedido apenas se usuário for dono ou admin.
-* Deve permitir cancelar/finalizar pedido apenas se usuário for dono ou admin.
-* Deve permitir admin listar todos os pedidos.
-* Deve permitir usuário comum listar apenas os próprios pedidos.
-* Deve tratar token inválido com HTTP 401.
-* Deve tratar pedido inexistente com erro controlado, não erro 500.
-* Deve tratar item inexistente com erro controlado, não erro 500.
-* Deve possuir migrations reproduzíveis.
-* Deve possuir testes automatizados para autenticação, autorização e pedidos.
-* Não deve conter `.env`, tokens reais ou banco com dados reais versionados.
-* Deve ter `.env.example` com nomes das variáveis necessárias.
-* Deve registrar logs mínimos de erro e operações relevantes.
+* **Categoria:** Configuração / Segurança / Deploy
+* **Prioridade:** Alta
+* **Dificuldade:** Fácil
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O `.zip` contém `.env` com segredos reais. Também contém `base.db` com dados locais.
+* **Por que melhorar:** Segredos e bancos locais não devem ser compartilhados em pacotes de projeto.
+* **Requisito de melhoria:** “O sistema deve possuir `.env.example` sem valores reais e não deve distribuir `.env` nem banco local com dados.”
+* **Como aplicar de forma simples:**
 
----
+  1. Criar `.env.example`.
+  2. Manter `.env` no `.gitignore`.
+  3. Remover `.env` de zips futuros.
+  4. Remover `base.db` de zips futuros ou criar banco vazio via Alembic.
+  5. Regenerar `SECRET_KEY`, pois a chave foi exposta no pacote enviado.
+* **Critério de aceite:** O repositório/pacote não contém `.env` real, token real nem banco com dados locais.
+* **Arquivos provavelmente envolvidos:** `.env.example`, `.gitignore`, README.
+* **O que evitar:** Não colocar segredo real em README, teste, print ou zip.
+* **Fonte do porquê:** Twelve-Factor recomenda armazenar configuração em variáveis de ambiente, evitando config acoplada ao código e reduzindo risco de vazamento em repositórios. ([Twelve-Factor App][10])
+* **Referências de estudo:**
 
-# 18. Lacunas e dúvidas
-
-| Item                | Dúvida                                                             | Impacto                                | Como confirmar                                 |
-| ------------------- | ------------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------- |
-| Domínio exato       | A aplicação é especificamente de pizza ou delivery genérico?       | Afeta nomes de entidades e validações. | Confirmar com Product Owner ou README ausente. |
-| Cardápio/produtos   | Há produtos cadastráveis ou os itens são livres?                   | Afeta modelagem.                       | Definir requisito de catálogo.                 |
-| Preço unitário      | O preço deve ser informado pelo cliente ou calculado pelo sistema? | Alto risco de fraude.                  | Definir regra de negócio.                      |
-| Criação de admin    | Quem pode criar usuários administradores?                          | Segurança crítica.                     | Definir fluxo administrativo.                  |
-| Usuário ativo       | Usuário inativo deve poder logar?                                  | Segurança e operação.                  | Definir regra de autenticação.                 |
-| Status do pedido    | Quais status são permitidos e quais transições são válidas?        | Afeta workflow.                        | Criar enum e matriz de transição.              |
-| Endereço de entrega | Não há endereço no pedido.                                         | Aplicação de delivery fica incompleta. | Definir dados de entrega.                      |
-| Pagamento           | Não há pagamento.                                                  | Fluxo de delivery incompleto.          | Definir se haverá integração de pagamento.     |
-| Restaurante/loja    | Não há entidade loja/restaurante.                                  | Limita multiestabelecimento.           | Confirmar escopo.                              |
-| Deploy              | Não há Dockerfile ou configuração de produção.                     | Afeta implantação.                     | Definir ambiente alvo.                         |
-| Testes              | Não há testes automatizados.                                       | Risco de regressão.                    | Implementar suíte mínima.                      |
-| Banco de produção   | SQLite é suficiente?                                               | Escalabilidade e concorrência.         | Definir volume esperado.                       |
-| Logs/auditoria      | Não há logs estruturados.                                          | Dificulta suporte.                     | Definir requisitos de observabilidade.         |
-| Refresh token       | Não há tipo de token, rotação ou revogação.                        | Segurança.                             | Definir política de sessão.                    |
-| Migration ausente   | Há `.pyc` de possível migration sem `.py`.                         | Pode indicar histórico incompleto.     | Revisar repositório original.                  |
-| README vazio        | Não há documentação operacional.                                   | Dificulta instalação e manutenção.     | Criar README.                                  |
+  * Inglês: The Twelve-Factor App — Config.
+  * Português: Materiais sobre variáveis de ambiente em Python/FastAPI.
 
 ---
 
-# 19. Resumo executivo
+## RM-013 — Centralizar configurações com Pydantic Settings
 
-* **O que a aplicação faz:**
-  É uma API FastAPI para cadastro/login de usuários e gerenciamento básico de pedidos de delivery. Permite criar pedidos, adicionar/remover itens, recalcular preço, visualizar, listar, cancelar e finalizar pedidos. Usa autenticação JWT e persistência em SQLite.
+* **Categoria:** Configuração
+* **Prioridade:** Média
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `dependencies.py` carrega variáveis com `os.getenv`, mas não valida obrigatoriedade de `SECRET_KEY`, `DATABASE_URL` e `ALGORITHM`.
+* **Por que melhorar:** Configuração tipada evita aplicação subir com variável ausente ou inválida.
+* **Requisito de melhoria:** “O sistema deve centralizar configurações em uma classe `Settings` tipada e validada.”
+* **Como aplicar de forma simples:**
 
-* **O que é essencial reconstruir:**
-  Autenticação JWT, modelos `Usuario`, `Pedido` e `ItemPedido`, rotas de pedidos protegidas, regra de dono/admin, cálculo do preço por itens, migrations e configuração de ambiente.
+  1. Criar `settings.py`.
+  2. Usar `pydantic-settings`.
+  3. Definir campos obrigatórios: `database_url`, `secret_key`, `algorithm`.
+  4. Usar `@lru_cache` para carregar uma vez.
+  5. Trocar imports diretos de `dependencies.py`.
+* **Critério de aceite:** Se `SECRET_KEY` estiver ausente, a aplicação falha ao iniciar com erro claro.
+* **Arquivos provavelmente envolvidos:** `settings.py`, `dependencies.py`, `database.py`, `alembic/env.py`.
+* **O que evitar:** Não espalhar `os.getenv` por vários arquivos.
+* **Fonte do porquê:** A documentação do FastAPI recomenda Pydantic Settings para lidar com configurações, `.env` e testes de forma organizada. ([FastAPI][11])
+* **Referências de estudo:**
 
-* **O que é opcional:**
-  `teste.py`, banco SQLite com dados locais, arquivos `__pycache__`, metadados `.git`, uso do `uv.lock` se o projeto for reconstruído com outro gerenciador.
+  * Inglês: FastAPI Settings and Environment Variables.
+  * Português: FastAPI em português — Configurações, quando disponível.
 
-* **Principais riscos:**
-  `.env`, token e banco incluídos no projeto; criação de admin pelo próprio payload; criação de pedido para usuário arbitrário; ausência de testes; ausência de validações fortes; tratamento de erro incompleto; README vazio; banco hardcoded.
+---
 
-* **Esforço estimado:**
-  **Pequeno** para reconstruir uma versão equivalente básica.
-  **Médio** para reconstruir com segurança, testes, validações, logs e preparação mínima para produção.
+## RM-014 — Tornar `connect_args` compatível com outros bancos
 
-* **Complexidade estimada:**
-  **Baixa a média.**
-  A lógica atual é simples, mas os ajustes de segurança/autorização e organização arquitetural exigem atenção para evitar reproduzir fragilidades do projeto original.
+* **Categoria:** Banco / Deploy
+* **Prioridade:** Média
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `create_engine` sempre usa `connect_args={"check_same_thread": False}`, opção específica para SQLite.
+* **Por que melhorar:** Em deploy com PostgreSQL, essa configuração não faz sentido e pode gerar erro.
+* **Requisito de melhoria:** “O sistema deve aplicar configurações específicas de engine apenas quando o banco for SQLite.”
+* **Como aplicar de forma simples:**
+
+  1. Verificar se `DATABASE_URL.startswith("sqlite")`.
+  2. Usar `connect_args` apenas nesse caso.
+  3. Para PostgreSQL, criar engine sem esse argumento.
+* **Critério de aceite:** A aplicação inicia com SQLite local e também com PostgreSQL via `DATABASE_URL`.
+* **Arquivos provavelmente envolvidos:** `database.py`, `settings.py`.
+* **O que evitar:** Não deixar configuração local travar produção.
+* **Fonte do porquê:** A estratégia Twelve-Factor favorece que a mesma aplicação rode em diferentes deploys apenas trocando variáveis de ambiente. ([Twelve-Factor App][10])
+* **Referências de estudo:**
+
+  * Inglês: SQLAlchemy Engine Configuration; Twelve-Factor App.
+  * Português: Tutoriais de SQLAlchemy com PostgreSQL.
+
+---
+
+## RM-015 — Adicionar testes automatizados com pytest e TestClient
+
+* **Categoria:** Testes
+* **Prioridade:** Alta
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Não há testes automatizados.
+* **Por que melhorar:** Sem testes, qualquer correção em autenticação, pedidos ou banco pode quebrar fluxos existentes sem aviso.
+* **Requisito de melhoria:** “O sistema deve possuir testes automatizados dos principais fluxos da API.”
+* **Como aplicar de forma simples:**
+
+  1. Criar pasta `tests/`.
+  2. Adicionar `pytest` e `httpx` como dependências de desenvolvimento.
+  3. Criar fixture de banco de teste.
+  4. Testar cadastro, login, criação de pedido, adicionar item, remover item, autorização e erros.
+* **Critério de aceite:** Rodar `pytest` executa testes principais com sucesso.
+* **Arquivos provavelmente envolvidos:** `tests/`, `pyproject.toml`, `database.py`.
+* **O que evitar:** Não testar usando banco real `base.db`.
+* **Fonte do porquê:** A documentação do FastAPI mostra uso direto de `pytest` e `TestClient` para testar APIs de forma simples. ([FastAPI][12])
+* **Referências de estudo:**
+
+  * Inglês: FastAPI Testing; pytest fixtures.
+  * Português: Tutoriais de pytest para FastAPI.
+
+---
+
+## RM-016 — Padronizar erros de domínio
+
+* **Categoria:** Tratamento de erros
+* **Prioridade:** Média
+* **Dificuldade:** Média
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Existem `HTTPException` espalhadas nos services, algumas genéricas, e alguns `except Exception` escondem a causa.
+* **Por que melhorar:** Erros previsíveis deixam a API mais fácil de consumir e testar.
+* **Requisito de melhoria:** “O sistema deve retornar erros HTTP padronizados para recursos inexistentes, acesso negado, duplicidade e falha de validação.”
+* **Como aplicar de forma simples:**
+
+  1. Criar mensagens consistentes.
+  2. Evitar `except Exception` sem necessidade.
+  3. Tratar erro de integridade de email duplicado como 409.
+  4. Criar testes para cada erro esperado.
+* **Critério de aceite:** Pedido inexistente retorna 404; usuário sem permissão retorna 403; email duplicado retorna 409.
+* **Arquivos provavelmente envolvidos:** `services/*.py`, `routes/*.py`, testes.
+* **O que evitar:** Não retornar 500 para erro conhecido do usuário.
+* **Fonte do porquê:** FastAPI usa `HTTPException` para retornar erros HTTP controlados em path operations. ([FastAPI][13])
+* **Referências de estudo:**
+
+  * Inglês: FastAPI Handling Errors.
+  * Português: FastAPI em português — Tratamento de erros.
+
+---
+
+## RM-017 — Adicionar logs básicos
+
+* **Categoria:** Observabilidade
+* **Prioridade:** Média
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Não há logging explícito da aplicação.
+* **Por que melhorar:** Em deploy, logs são a primeira forma de entender falhas.
+* **Requisito de melhoria:** “O sistema deve registrar logs básicos de inicialização, erros e operações relevantes.”
+* **Como aplicar de forma simples:**
+
+  1. Configurar `logging` padrão do Python.
+  2. Registrar erro antes de devolver 500.
+  3. Não logar senha, token nem segredo.
+  4. Em deploy, usar stdout/stderr.
+* **Critério de aceite:** Erros internos aparecem no log sem expor dados sensíveis.
+* **Arquivos provavelmente envolvidos:** `main.py`, `services/*.py`, `settings.py`.
+* **O que evitar:** Não logar corpo completo de login.
+* **Fonte do porquê:** Plataformas como Render expõem logs e dependem de comando de start/serviço configurado corretamente; logs em stdout ajudam na operação básica. ([Render][9])
+* **Referências de estudo:**
+
+  * Inglês: Python logging documentation; Render Web Services.
+  * Português: Tutoriais de logging em Python.
+
+---
+
+## RM-018 — Adicionar paginação em listagem de pedidos
+
+* **Categoria:** Performance / API Design
+* **Prioridade:** Média
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** `listar_todos_pedidos` retorna todos os pedidos sem limite.
+* **Por que melhorar:** Com crescimento do banco, a listagem pode ficar lenta e pesada.
+* **Requisito de melhoria:** “O sistema deve permitir paginação nas listagens de pedidos.”
+* **Como aplicar de forma simples:**
+
+  1. Adicionar query params `limit` e `offset`.
+  2. Definir limite máximo, por exemplo 100.
+  3. Aplicar `.limit(limit).offset(offset)` na query.
+  4. Atualizar schema de resposta se quiser incluir total futuramente.
+* **Critério de aceite:** `GET /pedidos/listar?limit=10&offset=0` retorna no máximo 10 pedidos.
+* **Arquivos provavelmente envolvidos:** `routes/orders.py`, `services/pedido_service.py`.
+* **O que evitar:** Não adicionar paginação complexa com cursor agora.
+* **Fonte do porquê:** SQLAlchemy permite construir consultas legíveis com `select`, e paginação simples por limite/offset é suficiente para projeto pequeno. ([docs.sqlalchemy.org][14])
+* **Referências de estudo:**
+
+  * Inglês: SQLAlchemy querying/select.
+  * Português: Tutoriais SQLAlchemy select, limit e offset.
+
+---
+
+## RM-019 — Limpar dependências e padronizar gerenciador de pacote
+
+* **Categoria:** Experiência de desenvolvimento / Qualidade
+* **Prioridade:** Média
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Confirmado pelo código
+* **Problema identificado:** O projeto usa `pyproject.toml` e `uv.lock`, mas há dependências possivelmente redundantes: `pyjwt` e `python-jose`; `pwdlib` e `passlib`; `requests` sem teste automatizado.
+* **Por que melhorar:** Menos dependências reduzem confusão, superfície de manutenção e risco de incompatibilidade.
+* **Requisito de melhoria:** “O sistema deve manter apenas dependências realmente usadas e documentar o gerenciador oficial.”
+* **Como aplicar de forma simples:**
+
+  1. Definir `uv` como padrão.
+  2. Remover dependências não usadas após confirmar.
+  3. Manter `uv.lock` versionado.
+  4. Documentar `uv sync` e `uv run uvicorn main:app --reload`.
+* **Critério de aceite:** Um novo dev consegue instalar e rodar o projeto usando somente README + `uv`.
+* **Arquivos provavelmente envolvidos:** `pyproject.toml`, `uv.lock`, `README.md`.
+* **O que evitar:** Não manter `requirements.txt` e `pyproject.toml` divergentes se não houver necessidade.
+* **Fonte do porquê:** O Python Packaging User Guide documenta `pyproject.toml` como arquivo central de configuração de empacotamento e ferramentas. ([packaging.python.org][15])
+* **Referências de estudo:**
+
+  * Inglês: Python Packaging User Guide; uv documentation.
+  * Português: Guias de `pyproject.toml` e `uv` em Python.
+
+---
+
+## RM-020 — Adicionar Ruff para lint e formatação
+
+* **Categoria:** Qualidade de código
+* **Prioridade:** Baixa
+* **Dificuldade:** Fácil
+* **Impacto:** Médio
+* **Status:** Não confirmado
+* **Problema identificado:** Não há configuração de linter/formatter no projeto.
+* **Por que melhorar:** Padroniza estilo, imports e erros simples antes de virar bug.
+* **Requisito de melhoria:** “O sistema deve possuir ferramenta simples de lint e formatação configurada no projeto.”
+* **Como aplicar de forma simples:**
+
+  1. Adicionar `ruff` como dependência de desenvolvimento.
+  2. Configurar `[tool.ruff]` no `pyproject.toml`.
+  3. Usar `uv run ruff check .` e `uv run ruff format .`.
+  4. Documentar no README.
+* **Critério de aceite:** `ruff check .` e `ruff format --check .` executam sem erros críticos.
+* **Arquivos provavelmente envolvidos:** `pyproject.toml`, README.
+* **O que evitar:** Não discutir estilo manualmente antes de automatizar.
+* **Fonte do porquê:** Ruff é linter e formatter Python oficial da Astral, com suporte a muitas regras e formatação via CLI. ([Astral Docs][16]) ([Astral Docs][17])
+* **Referências de estudo:**
+
+  * Inglês: Ruff Docs.
+  * Português: Artigos brasileiros introdutórios sobre Ruff.
+
+---
+
+## RM-021 — Criar Dockerfile simples para estudo/deploy
+
+* **Categoria:** Deploy / Experiência de desenvolvimento
+* **Prioridade:** Média
+* **Dificuldade:** Média
+* **Impacto:** Alto
+* **Status:** Confirmado pelo código
+* **Problema identificado:** Não há `Dockerfile` nem `docker-compose.yml`.
+* **Por que melhorar:** Docker ajuda a rodar a API de forma mais parecida com produção e facilita deploy em Render, Cloud Run, VPS e outros.
+* **Requisito de melhoria:** “O sistema deve possuir Dockerfile simples para empacotar a aplicação.”
+* **Como aplicar de forma simples:**
+
+  1. Criar `Dockerfile`.
+  2. Instalar dependências com `uv` ou `pip`.
+  3. Copiar código.
+  4. Expor porta.
+  5. Rodar `uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}`.
+* **Critério de aceite:** `docker build` e `docker run` sobem a API e `/health` responde.
+* **Arquivos provavelmente envolvidos:** `Dockerfile`, `.dockerignore`, README.
+* **O que evitar:** Não adicionar Kubernetes agora.
+* **Fonte do porquê:** A documentação Docker para Python mostra como containerizar uma aplicação Python/FastAPI com Dockerfile e Compose. ([Docker Documentation][18])
+* **Referências de estudo:**
+
+  * Inglês: Docker Python Guide.
+  * Português: Tutoriais Docker para Python/FastAPI.
+
+---
+
+## RM-022 — Criar CI simples com GitHub Actions
+
+* **Categoria:** CI/CD / Testes / Qualidade
+* **Prioridade:** Baixa
+* **Dificuldade:** Média
+* **Impacto:** Médio
+* **Status:** Não confirmado
+* **Problema identificado:** Não há workflow de CI.
+* **Por que melhorar:** Ajuda a garantir que testes e lint rodem antes de merge/deploy.
+* **Requisito de melhoria:** “O sistema deve possuir pipeline simples para instalar dependências, rodar lint e testes.”
+* **Como aplicar de forma simples:**
+
+  1. Criar `.github/workflows/ci.yml`.
+  2. Usar Python 3.12.
+  3. Rodar `uv sync`.
+  4. Rodar `ruff check .`.
+  5. Rodar `pytest`.
+* **Critério de aceite:** Todo push executa CI e falha se testes quebrarem.
+* **Arquivos provavelmente envolvidos:** `.github/workflows/ci.yml`, `pyproject.toml`.
+* **O que evitar:** Não criar pipeline complexo de deploy antes dos testes existirem.
+* **Fonte do porquê:** A documentação do GitHub Actions fornece workflow padrão para build e testes em projetos Python. ([GitHub Docs][19])
+* **Referências de estudo:**
+
+  * Inglês: GitHub Actions — Building and testing Python.
+  * Português: Tutoriais GitHub Actions com Python.
+
+---
+
+# 4. Requisitos específicos de deploy
+
+## 4.1 Estado atual para deploy
+
+* **A aplicação está pronta para deploy?** Ainda não. Ela pode rodar localmente após instalar dependências, mas faltam requisitos mínimos de produção.
+* **Há Dockerfile?** Não.
+* **Há `requirements.txt` ou `pyproject.toml` adequado?** Há `pyproject.toml` e `uv.lock`. Não encontrei `requirements.txt` na estrutura real, embora o README antigo mencione.
+* **Há configuração por ambiente?** Parcial. Existe `.env`, mas falta `settings.py` tipado e `.env.example`.
+* **Há banco externo configurável?** Parcial. `DATABASE_URL` existe, mas `connect_args` está fixo para SQLite.
+* **Há logs mínimos?** Não há logging explícito.
+* **Há health check?** Não.
+* **Há documentação de deploy?** Não de forma confiável. O README está desatualizado em partes.
+
+## 4.2 Melhorias mínimas antes de deploy
+
+Antes de publicar, implementar no mínimo:
+
+* `.env.example`;
+* remoção de `.env` real do pacote;
+* regeneração de `SECRET_KEY`;
+* separação de configuração local/produção;
+* validação de `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`;
+* servidor ASGI correto com `uvicorn`;
+* endpoint `/health`;
+* logs básicos;
+* README com comandos reais;
+* banco configurável por variável de ambiente;
+* CORS ajustado somente se houver front-end;
+* secrets fora do código;
+* Dockerfile, se o caminho escolhido usar container;
+* testes mínimos de autenticação e pedidos.
+
+## 4.3 Caminhos de deploy recomendados
+
+### Caminho A — Deploy simples em PaaS gratuito ou low cost
+
+**Opções:** Render, Railway, Fly.io, Azure App Service, Google Cloud Run, AWS App Runner.
+
+**Quando faz sentido:** Para primeiro deploy público, portfólio, estudo e validação rápida.
+
+**Nível de dificuldade:** Fácil a médio.
+
+**Custo aproximado:**
+
+* Render tem workspace Hobby a US$0/mês + compute e web services a partir de US$0/mês, mas serviços gratuitos têm limitações. ([Render][20])
+* Railway mostra plano Free US$0/mês e Hobby US$5/mês, com limites por plano. ([Railway Docs][21])
+* Fly.io não deve ser tratado como “free tier” permanente para novos usuários; a própria documentação informa que não há conta/free tier gratuito e que allowances não limitam a fatura. ([Fly.io][22])
+* Google Cloud Run tem free tier mensal para CPU, memória e requisições, mas exige atenção com billing e região. ([Google Cloud][23])
+* AWS App Runner é simples, mas cobra memória provisionada mesmo com aplicação ociosa e cobra CPU quando ativa. ([Amazon Web Services, Inc.][24])
+
+**Vantagens:**
+
+* Menos infra para administrar.
+* Deploy por Git.
+* HTTPS geralmente simplificado.
+* Logs no painel.
+* Bom para júnior aprender deploy sem gerenciar servidor.
+
+**Desvantagens:**
+
+* Free tier pode dormir, limitar recursos ou gerar custo se mal configurado.
+* Banco SQLite local não é bom para produção nessas plataformas.
+* Banco gerenciado pode custar mais que a API.
+
+**Passos mínimos:**
+
+1. Criar `/health`.
+2. Criar `.env.example`.
+3. Corrigir comando de start.
+4. Subir no GitHub sem `.env` e sem `base.db`.
+5. Configurar variáveis no painel.
+6. Usar SQLite apenas para teste; para algo mais sério, usar PostgreSQL gerenciado ou VPS com volume/backup.
+
+**O que estudar:**
+
+* Uvicorn;
+* variáveis de ambiente;
+* logs;
+* PostgreSQL básico;
+* Render/Railway/Cloud Run docs.
+
+### Caminho B — Deploy com Docker em VPS barato ou gratuito
+
+**Opções:** Oracle Cloud Free Tier, DigitalOcean, Hetzner, AWS EC2 Free Tier.
+
+**Quando faz sentido:** Quando o objetivo é aprender operação mais próxima do mundo profissional: Linux, SSH, Docker, logs, proxy reverso, HTTPS e backup.
+
+**Nível de dificuldade:** Médio.
+
+**Vantagens:**
+
+* Mais controle.
+* Custo previsível em VPS paga.
+* Aprende Linux, Docker, Nginx/Caddy, systemd e segurança básica.
+* Permite rodar API + Postgres no mesmo servidor para estudo.
+
+**Desvantagens:**
+
+* Você administra segurança, atualizações e backup.
+* Mais chance de erro operacional.
+* Precisa cuidar de firewall e HTTPS.
+
+**Custos:**
+
+* Oracle Cloud Free Tier oferece Always Free Services e US$300 de crédito por 30 dias para teste; os serviços Always Free têm limites e podem ter restrições de capacidade. ([Oracle][25])
+* DigitalOcean Droplets começam em US$4/mês e são cobrados por segundo com mínimo de 60 segundos; backups são custo adicional. ([DigitalOcean][26]) ([DigitalOcean Docs][27])
+* Hetzner costuma ser barato, mas houve ajuste de preços em junho de 2026; confirmar valores atuais antes de contratar. ([docs.hetzner.com][28])
+
+**Cuidados de segurança:**
+
+* SSH com chave, sem senha.
+* Firewall liberando só 22, 80 e 443.
+* Não rodar app como root.
+* HTTPS com Caddy ou Nginx + Certbot.
+* Backups do banco.
+* Atualizações do sistema.
+* Logs e rotação.
+
+**Uso de Nginx/Caddy:**
+
+* Caddy é mais simples para HTTPS automático.
+* Nginx é mais tradicional e muito usado em produção.
+
+**systemd ou Docker Compose:**
+
+* Para júnior, Docker Compose é mais didático.
+* systemd é útil se rodar sem container.
+
+### Caminho C — Deploy em container gerenciado com free tier
+
+**Opções:** Google Cloud Run, Azure Container Apps, AWS ECS Fargate.
+
+**Quando faz sentido:** Quando o projeto já tem Dockerfile e você quer evitar administrar VPS.
+
+**Nível de dificuldade:** Médio.
+
+**Vantagens:**
+
+* Container gerenciado.
+* Escala melhor que VPS simples.
+* Pode escalar para zero em alguns cenários.
+* Bom caminho profissional sem Kubernetes.
+
+**Desvantagens:**
+
+* Precisa entender imagem Docker, variáveis, registry e billing.
+* Banco deve ser externo.
+* Logs e rede exigem mais estudo.
+* Custo pode surpreender se deixar recursos mínimos sempre ligados.
+
+**Requisitos prévios:**
+
+* Dockerfile funcionando.
+* `/health`.
+* Config por env vars.
+* Banco externo.
+* Logs em stdout.
+* Secret fora do código.
+
+**Fluxo básico:**
+
+1. Build da imagem.
+2. Push para registry.
+3. Criar serviço no Cloud Run/Azure Container Apps.
+4. Configurar env vars.
+5. Configurar porta.
+6. Testar `/health`.
+7. Configurar domínio depois.
+
+**Observação de custo:** Cloud Run e Azure Container Apps têm free grants mensais para CPU/memória/requisições, mas precisam de billing ativo e controle de consumo. ([Google Cloud][23]) ([Microsoft Azure][29])
+
+### Caminho D — Deploy local/profissional para estudo
+
+**Objetivo:** Montar ambiente local parecido com produção, sem gastar.
+
+Componentes:
+
+* `Dockerfile`;
+* `docker-compose.yml`;
+* Postgres;
+* `.env`;
+* `.env.example`;
+* Alembic migrations;
+* `/health`;
+* logs básicos;
+* README com comandos.
+
+**Fluxo sugerido:**
+
+1. `docker compose up --build`.
+2. API sobe em `localhost:8000`.
+3. Postgres sobe em `localhost:5432`.
+4. `alembic upgrade head`.
+5. `pytest`.
+6. Swagger em `/docs`.
+7. Health check em `/health`.
+
+Esse é o melhor caminho de aprendizado antes de gastar com cloud.
+
+## 4.4 Recomendação final de deploy para este projeto
+
+| Caminho                    |              Recomendado agora? | Por quê                                             | Complexidade | Próximo passo                                           |
+| -------------------------- | ------------------------------: | --------------------------------------------------- | -----------: | ------------------------------------------------------- |
+| Render/Railway simples     | Sim, depois dos ajustes mínimos | Mais fácil para primeiro deploy de portfólio        |  Baixa/Média | Criar `/health`, `.env.example`, corrigir start command |
+| Docker Compose local       |             Sim, antes da nuvem | Ensina padrão profissional sem custo                |        Média | Criar Dockerfile + Postgres local                       |
+| Google Cloud Run           |           Sim, depois de Docker | Profissional e com free tier mensal                 |        Média | Criar imagem Docker e configurar env vars               |
+| Oracle Cloud Free Tier VPS |         Sim, para estudar infra | Gratuito/baixo custo, mais próximo de servidor real |   Média/Alta | Preparar VPS com Docker, firewall e Caddy               |
+| AWS App Runner             |                       Não agora | Simples, mas pode custar mesmo parado               |        Média | Usar só quando souber controlar billing                 |
+| Kubernetes                 |                             Não | Complexo demais para este projeto                   |         Alta | Estudar apenas no futuro                                |
+
+---
+
+# 5. Roadmap de melhoria para desenvolvedor júnior
+
+## Fase 1 — Rodar, entender e documentar
+
+Objetivo: deixar o projeto fácil de executar e compreender.
+
+Itens:
+
+* RM-012
+* RM-019
+* RM-011
+
+Entregável:
+
+* projeto roda localmente;
+* README atualizado;
+* variáveis documentadas;
+* comandos básicos definidos;
+* `/health` funcionando.
+
+## Fase 2 — Organização e qualidade básica
+
+Objetivo: deixar o código mais limpo, separado e previsível.
+
+Itens:
+
+* RM-001
+* RM-006
+* RM-010
+* RM-020
+
+Entregável:
+
+* login por email corrigido;
+* schemas organizados;
+* rotas sem duplicação;
+* lint e formatação configurados.
+
+## Fase 3 — Testes e segurança básica
+
+Objetivo: garantir que os fluxos principais funcionam e reduzir riscos.
+
+Itens:
+
+* RM-002
+* RM-003
+* RM-004
+* RM-005
+* RM-015
+* RM-016
+
+Entregável:
+
+* testes dos principais endpoints;
+* admin bloqueado no cadastro público;
+* access/refresh token separados;
+* erros básicos padronizados.
+
+## Fase 4 — Preparação para deploy
+
+Objetivo: deixar a aplicação pronta para rodar fora da máquina local.
+
+Itens:
+
+* RM-013
+* RM-014
+* RM-017
+* RM-021
+
+Entregável:
+
+* configuração centralizada;
+* banco configurável;
+* logs básicos;
+* Dockerfile;
+* comando de start de produção.
+
+## Fase 5 — Deploy inicial gratuito ou low cost
+
+Objetivo: publicar a aplicação de forma simples e econômica.
+
+Itens:
+
+* RM-011
+* RM-012
+* RM-021
+
+Entregável:
+
+* aplicação publicada;
+* endpoint `/health` funcionando;
+* variáveis configuradas;
+* logs acessíveis;
+* README com link e instruções.
+
+## Fase 6 — Melhorias futuras
+
+Objetivo: evoluir sem complexidade desnecessária.
+
+Itens:
+
+* RM-018
+* RM-022
+* melhorias de CORS se houver front-end;
+* PostgreSQL em produção;
+* refresh token mais robusto com revogação, se o projeto crescer.
+
+---
+
+# 6. Plano semanal sugerido
+
+| Semana | Foco               | Melhorias                      | Entregável                                       | Referências                              |
+| -----: | ------------------ | ------------------------------ | ------------------------------------------------ | ---------------------------------------- |
+|      1 | Rodar e documentar | RM-012, RM-019, RM-011         | README real + `.env.example` + `/health`         | FastAPI Settings; Twelve-Factor          |
+|      2 | Segurança inicial  | RM-001, RM-002, RM-003         | Login por email + bloqueio de admin público      | FastAPI OAuth2/JWT; OWASP                |
+|      3 | Token e erros      | RM-004, RM-005, RM-016         | Tokens com expiração correta e erros 401/404/409 | PyJWT; FastAPI errors                    |
+|      4 | Banco e validação  | RM-007, RM-008, RM-009, RM-014 | Validações + migration + rollback                | Pydantic; SQLAlchemy; Alembic            |
+|      5 | Testes e qualidade | RM-015, RM-020                 | `pytest` + Ruff                                  | FastAPI Testing; Ruff                    |
+|      6 | Deploy             | RM-017, RM-021, RM-022         | Dockerfile + CI simples + deploy inicial         | Docker; GitHub Actions; Render/Cloud Run |
+
+---
+
+# 7. Fontes recomendadas
+
+## Inglês
+
+* **FastAPI Documentation** — base principal para rotas, validação, dependências e OpenAPI.
+* **FastAPI Bigger Applications** — estudar organização com `APIRouter`, múltiplos arquivos e modularização. ([FastAPI][8])
+* **FastAPI Deployment** — estudar conceitos de deploy ASGI, workers e produção.
+* **Uvicorn Documentation** — estudar como executar aplicação ASGI e comandos de produção. ([Uvicorn][30])
+* **FastAPI OAuth2/JWT** — estudar autenticação, hash de senha e tokens JWT. ([FastAPI][1])
+* **Pydantic Documentation** — estudar validação de dados, tipos, campos e schemas. ([pydantic.dev][5])
+* **FastAPI Settings and Environment Variables** — estudar `pydantic-settings`, `.env` e config testável. ([FastAPI][11])
+* **SQLAlchemy Documentation** — estudar sessão, commit, rollback, models e relacionamentos. ([docs.sqlalchemy.org][7])
+* **Alembic Documentation** — estudar migrations versionadas para banco. ([Alembic][31])
+* **Pytest Documentation / FastAPI Testing** — estudar testes com `pytest` e `TestClient`. ([FastAPI][12])
+* **Docker Python Guide** — estudar Dockerfile e Compose para aplicação Python. ([Docker Documentation][18])
+* **Twelve-Factor App** — estudar configuração por variáveis de ambiente. ([Twelve-Factor App][10])
+* **OWASP API Security Top 10** — estudar riscos comuns de autenticação e autorização em APIs. ([OWASP][2])
+* **GitHub Actions Python** — estudar CI simples para rodar testes e lint. ([GitHub Docs][19])
+* **Render Docs / Cloud Run / Railway** — estudar deploy PaaS/containers e custos atuais. ([Render][32])
+
+## Português
+
+* **FastAPI em português — Aplicações maiores** — bom para entender organização com routers em português. ([FastAPI][33])
+* **Auth0 Brasil — JWT em Python** — bom material introdutório sobre JWT e PyJWT. ([Auth0][34])
+* **Oracle Cloud Free Tier em português** — útil para estudar VPS gratuita/baixo custo. ([Oracle][35])
+* **AWS App Runner pricing em português** — útil para entender custo antes de usar AWS. ([Amazon Web Services, Inc.][36])
+* **Azure Container Apps preços em português** — útil para estudar container gerenciado com free grant. ([Microsoft Azure][37])
+
+---
+
+# 8. O que não fazer agora
+
+* **Kubernetes:** não faz sentido para uma API pequena sem Docker, testes e logs básicos. Faz sentido no futuro se houver múltiplos serviços e necessidade real de orquestração.
+* **Microsserviços:** o projeto é monolítico simples. Separar agora aumentaria complexidade sem ganho.
+* **Event sourcing:** complexo demais para um CRUD de pedidos simples.
+* **Arquitetura hexagonal completa:** pode ser estudada depois, mas agora basta manter `routes`, `services`, `schemas`, `models` e talvez `repositories` se crescer.
+* **DDD pesado:** não há domínio complexo suficiente.
+* **Mensageria com RabbitMQ/Kafka:** só faria sentido com processamento assíncrono real, filas de entrega, pagamento ou notificações.
+* **CI/CD complexo:** primeiro faça CI simples com testes e lint.
+* **Observabilidade pesada com Prometheus/Grafana:** primeiro logs + `/health`.
+* **Autenticação sofisticada demais:** primeiro corrigir JWT, roles e refresh token.
+* **Cloud complexa demais:** primeiro Render/Railway/Cloud Run ou Docker Compose local.
+* **Múltiplos ambientes complexos:** para agora, basta `local`, `test` e `prod` por variáveis.
+
+---
+
+# 9. Checklist final para o júnior
+
+* consigo rodar o projeto localmente?
+* o README explica como instalar?
+* o README explica como executar?
+* o README explica como testar?
+* as variáveis de ambiente estão documentadas?
+* existe `.env.example`?
+* os segredos estão fora do código e fora do zip?
+* `base.db` local não está sendo distribuído com dados reais?
+* as rotas estão organizadas?
+* não existe `/pedidos/pedidos/...` por acidente?
+* os schemas estão claros?
+* a rota pública de cadastro não aceita `admin`?
+* há validação de email, senha, quantidade e preço?
+* há tratamento básico de erro?
+* refresh token não acessa rotas protegidas?
+* token novo recebe expiração nova?
+* há testes dos fluxos principais?
+* o banco está documentado?
+* Alembic está funcionando?
+* existe health check?
+* existem logs básicos?
+* existe comando de start para produção?
+* existe Dockerfile, se o deploy escolhido precisar?
+* existe caminho de deploy gratuito ou low cost recomendado?
+* os critérios de aceite de cada melhoria estão claros?
+
+---
+
+# 10. Resumo executivo
+
+As melhorias mais importantes são corrigir autenticação por email, impedir criação pública de admin, separar access token de refresh token, calcular expiração do token no momento correto, criar `.env.example`, remover segredos do pacote, adicionar `/health` e criar testes automatizados.
+
+As melhorias mais fáceis para começar são atualizar README, criar `.env.example`, adicionar `/health`, corrigir rotas duplicadas e bloquear `admin` no schema público de cadastro.
+
+As melhorias que mais aumentam qualidade profissional são testes com pytest, Pydantic Settings, rollback nas transações, validações fortes, logs básicos, Dockerfile e CI simples.
+
+Para deploy, o melhor caminho inicial é **Docker Compose local para estudo** e depois **Render ou Railway** para primeiro deploy simples. O caminho mais profissional ainda low cost é **Google Cloud Run** ou **VPS com Docker + Caddy + Postgres**, dependendo se o objetivo é aprender cloud gerenciada ou administração Linux.
+
+A ordem recomendada é: documentação e `.env.example` → segurança de cadastro/login/token → validações e banco → testes → logs/health → Docker → deploy.
+
+O principal cuidado é não transformar essa aplicação em algo maior do que ela precisa ser. Primeiro corrija o básico com disciplina; depois pense em arquitetura mais avançada somente se o projeto crescer de verdade.
+
+[1]: https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/ "OAuth2 with Password (and hashing), Bearer with JWT tokens - FastAPI"
+[2]: https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/ "API3:2023 Broken Object Property Level Authorization - OWASP API Security Top 10"
+[3]: https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ "API2:2023 Broken Authentication - OWASP API Security Top 10"
+[4]: https://pyjwt.readthedocs.io/ "Welcome to PyJWT — PyJWT 2.13.0 documentation"
+[5]: https://pydantic.dev/docs/validation/latest/get-started/?utm_source=chatgpt.com "Welcome to Pydantic | Pydantic Docs"
+[6]: https://docs.sqlalchemy.org/20/orm/basic_relationships.html "
+        
+        
+    
+    Basic Relationship Patterns
+ —
+    SQLAlchemy 2.0 Documentation
+
+        
+    "
+[7]: https://docs.sqlalchemy.org/en/latest/orm/session_basics.html "
+        
+        
+    
+    Session Basics
+ —
+    SQLAlchemy 2.1 Documentation
+
+        
+    "
+[8]: https://fastapi.tiangolo.com/tutorial/bigger-applications/?utm_source=chatgpt.com "Bigger Applications - Multiple Files - FastAPI"
+[9]: https://render.com/docs/web-services "Web Services – Render Docs"
+[10]: https://12factor.net/config "The Twelve-Factor App "
+[11]: https://fastapi.tiangolo.com/advanced/settings/ "Settings and Environment Variables - FastAPI"
+[12]: https://fastapi.tiangolo.com/tutorial/testing/ "Testing - FastAPI"
+[13]: https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/?utm_source=chatgpt.com "OAuth2 with Password (and hashing), Bearer with JWT ..."
+[14]: https://docs.sqlalchemy.org/en/latest/orm/session_basics.html?utm_source=chatgpt.com "Session Basics — SQLAlchemy 2.1 Documentation"
+[15]: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/?utm_source=chatgpt.com "Writing your pyproject.toml - Python Packaging User Guide"
+[16]: https://docs.astral.sh/ruff/?utm_source=chatgpt.com "Ruff - Astral Docs"
+[17]: https://docs.astral.sh/ruff/formatter/?utm_source=chatgpt.com "The Ruff Formatter - Astral Docs"
+[18]: https://docs.docker.com/guides/python/containerize/ "Python language-specific guide | Docker Docs"
+[19]: https://docs.github.com/actions/guides/building-and-testing-python "Building and testing Python - GitHub Docs"
+[20]: https://render.com/pricing "Pricing | Render"
+[21]: https://docs.railway.com/pricing/plans "Pricing Plans | Railway Docs"
+[22]: https://fly.io/docs/about/cost-management/ "Cost Management on Fly.io · Fly Docs"
+[23]: https://cloud.google.com/run/pricing "Cloud Run pricing | Google Cloud"
+[24]: https://aws.amazon.com/apprunner/pricing/ "AWS App Runner Pricing – Fully managed container application service – Amazon Web Services"
+[25]: https://www.oracle.com/cloud/free/ "Oracle Cloud Free Tier | Oracle"
+[26]: https://www.digitalocean.com/pricing/droplets?utm_source=chatgpt.com "Droplet Pricing"
+[27]: https://docs.digitalocean.com/products/droplets/details/pricing/?utm_source=chatgpt.com "Droplet Pricing | DigitalOcean Documentation"
+[28]: https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/ "Hetzner Price Adjustment 15 June 2026 - Hetzner Docs"
+[29]: https://azure.microsoft.com/en-us/pricing/details/container-apps/ "Azure Container Apps - Pricing | Microsoft Azure"
+[30]: https://uvicorn.dev/ "Index - Uvicorn"
+[31]: https://alembic.sqlalchemy.org/ "Welcome to Alembic’s documentation! — Alembic 1.18.5 documentation"
+[32]: https://render.com/docs/deploy-fastapi "Deploy a FastAPI App – Render Docs"
+[33]: https://fastapi.tiangolo.com/pt/tutorial/bigger-applications/?utm_source=chatgpt.com "Aplicações Maiores - Múltiplos Arquivos"
+[34]: https://auth0.com/blog/pt-how-to-handle-jwt-in-python/?utm_source=chatgpt.com "Como Lidar com JWTs em Python"
+[35]: https://www.oracle.com/br/cloud/free/?utm_source=chatgpt.com "Modo Gratuito da Oracle Cloud"
+[36]: https://aws.amazon.com/pt/apprunner/pricing/?utm_source=chatgpt.com "Definição de preços do AWS App Runner"
+[37]: https://azure.microsoft.com/pt-br/pricing/details/container-apps/?utm_source=chatgpt.com "Preços do Aplicativos de Contêiner do Azure"
