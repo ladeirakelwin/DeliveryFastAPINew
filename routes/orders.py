@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from services.usuario_service import CurrentUser
 from services.pedido_service import PedidoService
 from schemas import (
@@ -8,9 +8,10 @@ from schemas import (
     PedidoSchema,
     AlterarPedidoResponseSchema,
     ListarTodosPedidosResponseSchema,
+    PaginationSchema
 )
 from database import DBSession
-
+from typing import Annotated
 
 order_routes = APIRouter(prefix="/pedidos", tags=["Order Routes"])
 
@@ -74,9 +75,9 @@ def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
 
 
 @order_routes.get("/listar", response_model=ListarTodosPedidosResponseSchema)
-def listar_pedidos(usuario: CurrentUser, db: DBSession):
-    pedidos = PedidoService(db).listar_todos_pedidos(usuario)
-    return ListarTodosPedidosResponseSchema.model_validate({"pedidos": pedidos})
+def listar_pedidos(query: Annotated[PaginationSchema, Depends()], usuario: CurrentUser, db: DBSession ):
+    pedidos = PedidoService(db).listar_todos_pedidos(usuario, query)
+    return ListarTodosPedidosResponseSchema.model_validate({"offset": query.offset,"limit": query.limit,"pedidos": pedidos})
 
 
 @order_routes.get("/listar/pedido-usuario/", response_model=ListarTodosPedidosResponseSchema)
