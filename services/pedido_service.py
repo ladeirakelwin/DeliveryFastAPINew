@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from fastapi import status
-from schemas import ItemPedidoSchema
+from schemas import ItemPedidoSchema, PaginationSchema
 from typing import Literal
 
 
@@ -33,8 +33,8 @@ class PedidoService:
         pedido = self.db.scalar(pedido_db)
         return pedido
 
-    def _obtendo_pedidos(self) -> list[Pedido]:
-        pedidos_db = select(Pedido)
+    def _obtendo_pedidos(self, query: PaginationSchema) -> list[Pedido]:
+        pedidos_db = select(Pedido).offset(query.offset).limit(query.limit)
         pedidos = list(self.db.scalars(pedidos_db).fetchall())
         return pedidos
 
@@ -141,11 +141,12 @@ class PedidoService:
 
         return pedido
 
-    def listar_todos_pedidos(self, usuario: Usuario) -> list[Pedido]:
+    def listar_todos_pedidos(self, usuario: Usuario, query: PaginationSchema) -> list[Pedido]:
+
         if not usuario.admin:
             raise self.USUARIO_NAO_AUTORIZADO
 
-        pedidos = self._obtendo_pedidos()
+        pedidos = self._obtendo_pedidos(query)
 
         return pedidos
 
