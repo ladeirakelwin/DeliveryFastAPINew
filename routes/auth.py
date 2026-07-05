@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas import  UsuarioResponseSchema, UsuarioSchema, TokenSchema, RefreshTokenSchema
+from schemas import  (UsuarioResponseSchema, UsuarioCreate, TokenSchema, RefreshTokenSchema)
 from services.usuario_service import UsuarioService
 from services.auth_service import AuthService
 from typing import Annotated
@@ -12,9 +12,9 @@ AccessTokenLogin = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 
 @auth_routes.post("/criar-conta", response_model=UsuarioResponseSchema)
-async def criar_conta(usuario: UsuarioSchema, db: DBSession ):
+async def criar_conta(usuario: UsuarioCreate, db: DBSession ):
     usuario_service = UsuarioService(db)
-    novo_usuario = usuario_service.criar_usuario(usuario.email, usuario.senha, usuario.nome, usuario.ativo or True, usuario.admin or False)
+    novo_usuario = usuario_service.criar_usuario(usuario.email, usuario.senha, usuario.nome, usuario.ativo or True)
 
     return UsuarioResponseSchema.model_validate(novo_usuario)
 

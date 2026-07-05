@@ -51,7 +51,6 @@ class UsuarioService:
         senha: str,
         nome: str,
         ativo: bool = False,
-        admin: bool = False,
     ):
         email_existe = self._obtendo_usuario_email(email)
         nome_existe = self._obtendo_usuario_nome(nome)
@@ -67,7 +66,7 @@ class UsuarioService:
                 senha=senha_criptografada,
                 nome=nome,
                 ativo=ativo,
-                admin=admin,
+                admin=False,
             )
 
             self.db.add(novo_usuario)

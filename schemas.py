@@ -3,6 +3,12 @@ from fastapi import Query
 from typing import Optional
 
 
+class UsuarioCreate(BaseModel):
+    nome: str
+    email: str
+    senha: str
+    ativo: Optional[bool]
+
 class UsuarioBaseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
