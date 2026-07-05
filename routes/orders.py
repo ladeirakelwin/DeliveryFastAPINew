@@ -16,14 +16,14 @@ from typing import Annotated
 order_routes = APIRouter(prefix="/pedidos", tags=["Order Routes"])
 
 
-@order_routes.post("/pedido", response_model=IdPedidoResponseSchema)
+@order_routes.post("/criar", response_model=IdPedidoResponseSchema)
 def criar_pedido(usuario: CurrentUser, db: DBSession):
     novo_pedido = PedidoService(db).criando_pedido(usuario.id)
     return IdPedidoResponseSchema.model_validate(novo_pedido)
 
 
 @order_routes.post(
-    "/pedido/adicionar-item/{id_pedido}",
+    "/{id_pedido}/adicionar-item",
     response_model=AdicionarItemPedidoResponseSchema,
 )
 def adicionar_item_pedido(
@@ -43,7 +43,7 @@ def adicionar_item_pedido(
 
 
 @order_routes.delete(
-    "/pedido/remover-item/{id_item_pedido}", response_model=PedidoSchema
+    "/{id_item_pedido}/remover-item/", response_model=PedidoSchema
 )
 def deletar_item_pedido(id_item_pedido: int, usuario: CurrentUser, db: DBSession):
     pedido = PedidoService(db).remover_item_pedido(id_item_pedido, usuario)
@@ -52,7 +52,7 @@ def deletar_item_pedido(id_item_pedido: int, usuario: CurrentUser, db: DBSession
 
 
 @order_routes.put(
-    "/pedidos/pedido/finalizar/{id_pedido}",
+    "/{id_pedido}/finalizar/",
     response_model=AlterarPedidoResponseSchema,
 )
 def finalizar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
@@ -64,7 +64,7 @@ def finalizar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
 
 
 @order_routes.put(
-    "/pedidos/pedido/cancelar/{id_pedido}", response_model=AlterarPedidoResponseSchema
+    "/{id_pedido}/cancelar/", response_model=AlterarPedidoResponseSchema
 )
 def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
     pedido = PedidoService(db).alterar_status_pedido(id_pedido, "CANCELADO", usuario)
