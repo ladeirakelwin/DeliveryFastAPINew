@@ -25,6 +25,11 @@ class UsuarioService:
         usuario_db = select(Usuario).where(Usuario.nome == nome)
         usuario = self.db.scalar(usuario_db)
         return usuario
+    
+    def _obtendo_usuario_email(self, email: str) -> Usuario | None:
+        usuario_db = select(Usuario).where(Usuario.email == email)
+        usuario = self.db.scalar(usuario_db)
+        return usuario
 
     def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
         usuario = self._obtendo_usuario_nome(apelido)
@@ -48,8 +53,10 @@ class UsuarioService:
         ativo: bool = False,
         admin: bool = False,
     ):
-        usuario = self._obtendo_usuario_nome(email)
-        if usuario:
+        email_existe = self._obtendo_usuario_email(email)
+        nome_existe = self._obtendo_usuario_nome(nome)
+
+        if email_existe or nome_existe:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Conta já existe!"
             )
