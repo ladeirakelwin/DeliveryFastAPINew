@@ -21,13 +21,13 @@ class UsuarioService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _obtendo_usuario(self, apelido: str) -> Usuario | None:
-        usuario_db = select(Usuario).where(Usuario.nome == apelido)
+    def _obtendo_usuario_nome(self, nome: str) -> Usuario | None:
+        usuario_db = select(Usuario).where(Usuario.nome == nome)
         usuario = self.db.scalar(usuario_db)
         return usuario
 
     def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
-        usuario = self._obtendo_usuario(apelido)
+        usuario = self._obtendo_usuario_nome(apelido)
 
         if not usuario or not validar_senha(senha, usuario.senha):
             raise HTTPException(
@@ -48,7 +48,7 @@ class UsuarioService:
         ativo: bool = False,
         admin: bool = False,
     ):
-        usuario = self._obtendo_usuario(email)
+        usuario = self._obtendo_usuario_nome(email)
         if usuario:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Conta já existe!"
@@ -79,7 +79,7 @@ class UsuarioService:
             if not nome:
                 raise self.EXCECAO_CREDENCIAL
             
-            usuario = self._obtendo_usuario(nome)
+            usuario = self._obtendo_usuario_nome(nome)
             if not usuario:
                 raise self.EXCECAO_CREDENCIAL
             if not usuario.ativo:
