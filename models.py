@@ -6,7 +6,7 @@ class Usuario(Base):
     __tablename__ = "Usuarios"
 
     id: Mapped[int] = mapped_column(Integer,primary_key=True, autoincrement=True,nullable=False)
-    nome: Mapped[str] = mapped_column(String)
+    nome: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     senha: Mapped[str] = mapped_column(String)
     ativo: Mapped[bool] = mapped_column(Boolean)
