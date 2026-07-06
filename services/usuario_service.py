@@ -10,13 +10,16 @@ from dependencies import oauth2_scheme
 from jwt.exceptions import InvalidTokenError
 from services.auth_service import AuthService
 
+
 class UsuarioService:
-    USUARIO_INATIVO = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!")
+    USUARIO_INATIVO = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!"
+    )
     EXCECAO_CREDENCIAL = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Não foi possível validar credencial",
         headers={"WWW-Authenticate": "Bearer"},
-        )
+    )
 
     def __init__(self, db: Session):
         self.db = db
@@ -25,7 +28,7 @@ class UsuarioService:
         usuario_db = select(Usuario).where(Usuario.nome == nome)
         usuario = self.db.scalar(usuario_db)
         return usuario
-    
+
     def _obtendo_usuario_email(self, email: str) -> Usuario | None:
         usuario_db = select(Usuario).where(Usuario.email == email)
         usuario = self.db.scalar(usuario_db)
@@ -39,10 +42,10 @@ class UsuarioService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário ou senha inválido!",
             )
-        
+
         if not usuario.ativo:
             raise self.USUARIO_INATIVO
-        
+
         return usuario
 
     def criar_usuario(
@@ -78,19 +81,19 @@ class UsuarioService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro inesperado!",
             )
-        
+
     def obter_usuario_atual(self, token: str) -> Usuario:
         try:
             nome = AuthService.decodificar_token(token).get("sub")
             if not nome:
                 raise self.EXCECAO_CREDENCIAL
-            
+
             usuario = self._obtendo_usuario_nome(nome)
             if not usuario:
                 raise self.EXCECAO_CREDENCIAL
             if not usuario.ativo:
                 raise self.USUARIO_INATIVO
-            
+
             return usuario
 
         except InvalidTokenError:
@@ -98,7 +101,11 @@ class UsuarioService:
         except Exception:
             raise self.EXCECAO_CREDENCIAL
 
-def obter_usuario_autenticado(db: DBSession, token: Annotated[str, Depends(oauth2_scheme)]):
+
+def obter_usuario_autenticado(
+    db: DBSession, token: Annotated[str, Depends(oauth2_scheme)]
+):
     return UsuarioService(db).obter_usuario_atual(token)
 
-CurrentUser = Annotated[Usuario, Depends(obter_usuario_autenticado)]        
+
+CurrentUser = Annotated[Usuario, Depends(obter_usuario_autenticado)]

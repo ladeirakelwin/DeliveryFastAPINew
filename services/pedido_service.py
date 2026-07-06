@@ -141,7 +141,9 @@ class PedidoService:
 
         return pedido
 
-    def listar_todos_pedidos(self, usuario: Usuario, query: PaginationSchema) -> list[Pedido]:
+    def listar_todos_pedidos(
+        self, usuario: Usuario, query: PaginationSchema
+    ) -> list[Pedido]:
 
         if not usuario.admin:
             raise self.USUARIO_NAO_AUTORIZADO

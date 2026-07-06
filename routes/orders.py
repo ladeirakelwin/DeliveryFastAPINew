@@ -8,7 +8,7 @@ from schemas import (
     PedidoSchema,
     AlterarPedidoResponseSchema,
     ListarTodosPedidosResponseSchema,
-    PaginationSchema
+    PaginationSchema,
 )
 from database import DBSession
 from typing import Annotated
@@ -42,9 +42,7 @@ def adicionar_item_pedido(
     )
 
 
-@order_routes.delete(
-    "/{id_item_pedido}/remover-item/", response_model=PedidoSchema
-)
+@order_routes.delete("/{id_item_pedido}/remover-item/", response_model=PedidoSchema)
 def deletar_item_pedido(id_item_pedido: int, usuario: CurrentUser, db: DBSession):
     pedido = PedidoService(db).remover_item_pedido(id_item_pedido, usuario)
 
@@ -63,9 +61,7 @@ def finalizar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
     )
 
 
-@order_routes.put(
-    "/{id_pedido}/cancelar/", response_model=AlterarPedidoResponseSchema
-)
+@order_routes.put("/{id_pedido}/cancelar/", response_model=AlterarPedidoResponseSchema)
 def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
     pedido = PedidoService(db).alterar_status_pedido(id_pedido, "CANCELADO", usuario)
 
@@ -75,12 +71,18 @@ def cancelar_pedido(id_pedido: int, usuario: CurrentUser, db: DBSession):
 
 
 @order_routes.get("/listar", response_model=ListarTodosPedidosResponseSchema)
-def listar_pedidos(query: Annotated[PaginationSchema, Depends()], usuario: CurrentUser, db: DBSession ):
+def listar_pedidos(
+    query: Annotated[PaginationSchema, Depends()], usuario: CurrentUser, db: DBSession
+):
     pedidos = PedidoService(db).listar_todos_pedidos(usuario, query)
-    return ListarTodosPedidosResponseSchema.model_validate({"offset": query.offset,"limit": query.limit,"pedidos": pedidos})
+    return ListarTodosPedidosResponseSchema.model_validate(
+        {"offset": query.offset, "limit": query.limit, "pedidos": pedidos}
+    )
 
 
-@order_routes.get("/listar/pedido-usuario/", response_model=ListarTodosPedidosResponseSchema)
+@order_routes.get(
+    "/listar/pedido-usuario/", response_model=ListarTodosPedidosResponseSchema
+)
 def listar_pedidos_usuarios(usuario: CurrentUser, db: DBSession):
     pedidos = PedidoService(db).listar_todos_pedidos_usuarios(usuario)
     return ListarTodosPedidosResponseSchema.model_validate({"pedidos": pedidos})

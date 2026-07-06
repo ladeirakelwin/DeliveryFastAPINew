@@ -9,6 +9,7 @@ class UsuarioCreate(BaseModel):
     senha: str
     ativo: Optional[bool]
 
+
 class UsuarioBaseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -17,23 +18,27 @@ class UsuarioBaseSchema(BaseModel):
     ativo: Optional[bool]
     admin: Optional[bool]
 
+
 class UsuarioSchema(UsuarioBaseSchema):
     model_config = ConfigDict(from_attributes=True)
-    
+
     senha: str
+
 
 class UsuarioResponseSchema(UsuarioBaseSchema):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
+
 class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str 
+    token_type: str
+
 
 class IdPedidoResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
 
 
@@ -45,13 +50,16 @@ class ItemPedidoSchema(BaseModel):
     tamanho: str
     preco_unitario: float
 
+
 class ItemPedidoSchemaModel(ItemPedidoSchema):
     id: int
     pedido: int
 
+
 class AdicionarItemPedidoResponseSchema(ItemPedidoSchema):
     pedido: int
     preco_pedido: float
+
 
 class PedidoSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -62,14 +70,17 @@ class PedidoSchema(BaseModel):
     preco: float
     itens: list[ItemPedidoSchemaModel]
 
+
 class AlterarPedidoResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     mensagem: str
     pedido: PedidoSchema
 
+
 class RefreshTokenSchema(BaseModel):
     refresh_token: str
+
 
 class PaginationSchema(BaseModel):
     offset: int = Query(0, ge=0, description="Número de registro a pular")
@@ -78,5 +89,5 @@ class PaginationSchema(BaseModel):
 
 class ListarTodosPedidosResponseSchema(PaginationSchema):
     model_config = ConfigDict(from_attributes=True)
-    
+
     pedidos: list[PedidoSchema]
