@@ -7,6 +7,7 @@ from dependencies import (
 )
 from fastapi.exceptions import HTTPException
 from fastapi import status
+from typing import Optional
 import jwt
 
 
@@ -15,12 +16,16 @@ class AuthService:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Erro ao gerar token! Tente novamente mais tarde.",
     )
-    expiracao_token = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-    refresh_expiracao_token = datetime.now(timezone.utc) + timedelta(
-        days=REFRESH_TOKEN_EXPIRE_DAYS
-    )
+
+    def __init__(
+        self,
+        expiracao_token: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+        refresh_expiracao_token: int = REFRESH_TOKEN_EXPIRE_DAYS,
+    ):
+        self.expiracao_token = datetime.now() + timedelta(minutes=expiracao_token)
+        self.refresh_expiracao_token = datetime.now() + timedelta(
+            days=refresh_expiracao_token
+        )
 
     def criar_token(self, data: dict, is_refresh_token: bool = False) -> str:
         try:
