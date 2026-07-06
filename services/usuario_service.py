@@ -85,7 +85,8 @@ class UsuarioService:
     def obter_usuario_atual(self, token: str) -> Usuario:
         try:
             nome = AuthService.decodificar_token(token).get("sub")
-            if not nome:
+            tipo_token = AuthService.decodificar_token(token).get("type")
+            if not nome or tipo_token != "access":
                 raise self.EXCECAO_CREDENCIAL
 
             usuario = self._obtendo_usuario_nome(nome)
