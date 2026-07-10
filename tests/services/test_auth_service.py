@@ -1,6 +1,7 @@
 from services.auth_service import AuthService
 from time import sleep
 
+
 def test_se_tokens_criados_em_tempos_distintos_tem_expiracoes_diferentes():
     auth_service: AuthService = AuthService()
 
@@ -12,4 +13,3 @@ def test_se_tokens_criados_em_tempos_distintos_tem_expiracoes_diferentes():
     tempo_exp_2 = AuthService.decodificar_token(token_2)
 
     assert tempo_exp_1.get("exp") != tempo_exp_2.get("exp")
-    

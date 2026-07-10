@@ -17,15 +17,21 @@ class AuthService:
         detail="Erro ao gerar token! Tente novamente mais tarde.",
     )
 
-
-    def criar_token(self, data: dict, is_refresh_token: bool = False,expiracao_token: int = ACCESS_TOKEN_EXPIRE_MINUTES,
-        refresh_expiracao_token: int = REFRESH_TOKEN_EXPIRE_DAYS,) -> str:
+    def criar_token(
+        self,
+        data: dict,
+        is_refresh_token: bool = False,
+        expiracao_token: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+        refresh_expiracao_token: int = REFRESH_TOKEN_EXPIRE_DAYS,
+    ) -> str:
         try:
-
-            tempo_expiracao_token = datetime.now(timezone.utc) + timedelta(minutes=expiracao_token)
+            tempo_expiracao_token = datetime.now(timezone.utc) + timedelta(
+                minutes=expiracao_token
+            )
             tempo_refresh_expiracao_token = datetime.now(timezone.utc) + timedelta(
-                days=refresh_expiracao_token)
-            
+                days=refresh_expiracao_token
+            )
+
             token_cru = data.copy()
             token_cru.update(
                 {
@@ -49,7 +55,6 @@ class AuthService:
             return payload
         except ExpiredSignatureError:
             return {}
-        
 
     def atualizar_token(self, refresh_token_codificado: str) -> tuple[str, str]:
         refresh_token = self.decodificar_token(refresh_token_codificado)
