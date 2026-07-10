@@ -20,6 +20,31 @@ dependencies = [
     "uvicorn[standard]>=0.49.0",
 ]
 
+[tool.pytest.ini_options]
+# default path
+pythonpath = [
+    ".",
+]
+
+# Set the minimum required pytest version
+minversion = "7.0"
+
+# Default command-line arguments applied on every run
+addopts = "-sv"
+
+# Directories where pytest should look for tests
+testpaths = [
+    "tests",
+    "integration",
+    "test",
+]
+
+# Patterns to discover test files, classes, and functions
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*", "Suite*"]
+python_functions = ["test_*"]
+
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
