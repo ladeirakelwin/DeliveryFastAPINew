@@ -62,7 +62,7 @@ class AuthService:
         if not refresh_token or refresh_token.get("type") != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não autorizado!",
+                detail="Usuário não autorizado ou token expirado!",
             )
 
         novo_refresh_token = self.criar_token({"sub": refresh_token.get("sub")}, True)
