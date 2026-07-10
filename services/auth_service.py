@@ -7,7 +7,8 @@ from dependencies import (
 )
 from fastapi.exceptions import HTTPException
 from fastapi import status
-from typing import Optional
+from datetime import timezone
+from jwt.exceptions import ExpiredSignatureError
 import jwt
 
 
@@ -46,14 +47,18 @@ class AuthService:
         return token
 
     @staticmethod
-    def decodificar_token(token: str):
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+    def decodificar_token(token: str) -> dict:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return payload
+        except ExpiredSignatureError:
+            return {}
+        
 
     def atualizar_token(self, refresh_token_codificado: str) -> tuple[str, str]:
         refresh_token = self.decodificar_token(refresh_token_codificado)
 
-        if refresh_token.get("type") != "refresh":
+        if not refresh_token or refresh_token.get("type") != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário não autorizado!",
