@@ -24,6 +24,13 @@ class AuthService:
         expiracao_token: int = ACCESS_TOKEN_EXPIRE_MINUTES,
         refresh_expiracao_token: int = REFRESH_TOKEN_EXPIRE_DAYS,
     ) -> str:
+
+        if not isinstance(is_refresh_token, bool):
+            raise self.TOKEN_ERROR
+
+        if not data.get("sub"):
+            return ""
+
         try:
             tempo_expiracao_token = datetime.now(timezone.utc) + timedelta(
                 minutes=expiracao_token
