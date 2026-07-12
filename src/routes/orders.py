@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
-from services.usuario_service import CurrentUser
-from services.pedido_service import PedidoService
+from src.services.usuario_service import CurrentUser
+from src.services.pedido_service import PedidoService
 from schemas import (
     IdPedidoResponseSchema,
     ItemPedidoSchema,

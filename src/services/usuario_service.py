@@ -3,12 +3,12 @@ from sqlalchemy import select
 from models import Usuario
 from fastapi.exceptions import HTTPException
 from fastapi import status, Depends
-from utils.senha import validar_senha, criptografar_senha
+from src.utils.senha import validar_senha, criptografar_senha
 from typing import Annotated
 from database import DBSession
 from dependencies import oauth2_scheme
 from jwt.exceptions import InvalidTokenError
-from services.auth_service import AuthService
+from src.services.auth_service import AuthService
 
 
 class UsuarioService:

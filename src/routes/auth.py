@@ -6,8 +6,8 @@ from schemas import (
     TokenSchema,
     RefreshTokenSchema,
 )
-from services.usuario_service import UsuarioService
-from services.auth_service import AuthService
+from src.services.usuario_service import UsuarioService
+from src.services.auth_service import AuthService
 from typing import Annotated
 from database import DBSession
 

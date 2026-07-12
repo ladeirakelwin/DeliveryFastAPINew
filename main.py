@@ -1,9 +1,11 @@
 from fastapi import FastAPI
-from routes import auth, orders
+from src.routes import orders
 from database import DBSession
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 import time
+
+from src.routes import auth
 
 app = FastAPI()
 

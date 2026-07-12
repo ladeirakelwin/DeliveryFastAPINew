@@ -1,8 +1,8 @@
-from services.auth_service import AuthService
+from src.services.auth_service import AuthService
 from time import sleep
 
 
-def test_se_tokens_criados_em_tempos_distintos_tem_expiracoes_diferentes():
+def test_auth_service_se_tokens_criados_em_tempos_distintos_tem_expiracoes_diferentes():
     auth_service: AuthService = AuthService()
 
     token_1 = auth_service.criar_token({"sub": "teste2"})
