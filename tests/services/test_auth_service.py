@@ -46,3 +46,13 @@ def test_auth_service_se_retorna_dict_vazio_quando_tentar_decodificar_token_venc
     resposta_esperada = {}
 
     assert resposta_esperada == AuthService.decodificar_token(token_vencido)
+
+
+def test_auth_service_se_enviar_valor_invalido_para_atualizar_token_ele_sobe_401():
+    auth_service = AuthService()
+
+    with pytest.raises(HTTPException):
+        auth_service.atualizar_token("")
+
+    with pytest.raises(HTTPException):
+        auth_service.atualizar_token("sadojka12312123skldpóainsjdoaosdasdoasd")
