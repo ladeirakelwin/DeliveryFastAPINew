@@ -1,5 +1,7 @@
 from src.services.auth_service import AuthService
+from fastapi.exceptions import HTTPException
 from time import sleep
+import pytest
 
 
 def test_auth_service_se_tokens_criados_em_tempos_distintos_tem_expiracoes_diferentes():
@@ -13,3 +15,24 @@ def test_auth_service_se_tokens_criados_em_tempos_distintos_tem_expiracoes_difer
     tempo_exp_2 = AuthService.decodificar_token(token_2)
 
     assert tempo_exp_1.get("exp") != tempo_exp_2.get("exp")
+
+
+def test_auth_service_se_data_nao_conter_sub_ao_criar_token_retorna_vazio():
+    auth_service = AuthService()
+
+    token = auth_service.criar_token({})
+
+    assert not token
+
+
+def test_auth_service_se_gera_excecao_ao_enviar_dados_invalidos_ao_criar_token():
+    auth_service = AuthService()
+
+    with pytest.raises(HTTPException):
+        auth_service.criar_token("sdasd")  # pyright: ignore[reportArgumentType]
+
+    with pytest.raises(HTTPException):
+        auth_service.criar_token({"sub": "asdasd"}, 11)  # pyright: ignore[reportArgumentType]
+
+    with pytest.raises(HTTPException):
+        auth_service.criar_token({"sub": "asdasd"}, True, "")  # pyright: ignore[reportArgumentType]
