@@ -1,3 +1,5 @@
+htmlcov/*
+
 # sqlite e vscode
 .vscode
 *.db
