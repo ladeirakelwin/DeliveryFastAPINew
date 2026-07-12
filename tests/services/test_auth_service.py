@@ -1,5 +1,6 @@
 from src.services.auth_service import AuthService
 from fastapi.exceptions import HTTPException
+from jwt.exceptions import ExpiredSignatureError
 from time import sleep
 import pytest
 
@@ -36,3 +37,12 @@ def test_auth_service_se_gera_excecao_ao_enviar_dados_invalidos_ao_criar_token()
 
     with pytest.raises(HTTPException):
         auth_service.criar_token({"sub": "asdasd"}, True, "")  # pyright: ignore[reportArgumentType]
+
+
+def test_auth_service_se_retorna_dict_vazio_quando_tentar_decodificar_token_vencido():
+    # faça um mock de criar conta que retorne um token vencido e uma validação para inteiro positivo
+    auth_service = AuthService()
+    token_vencido = auth_service.criar_token({"sub": "sapopemba"}, False, -300)
+    resposta_esperada = {}
+
+    assert resposta_esperada == AuthService.decodificar_token(token_vencido)

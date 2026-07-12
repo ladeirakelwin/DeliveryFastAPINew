@@ -7,7 +7,7 @@ from dependencies import (
 )
 from fastapi.exceptions import HTTPException
 from fastapi import status
-from jwt.exceptions import ExpiredSignatureError
+from jwt.exceptions import ExpiredSignatureError, DecodeError
 import jwt
 
 
@@ -28,10 +28,10 @@ class AuthService:
         if not isinstance(is_refresh_token, bool):
             raise self.TOKEN_ERROR
 
-        if not data.get("sub"):
-            return ""
-
         try:
+            if not data.get("sub"):
+                return ""
+
             tempo_expiracao_token = datetime.now(timezone.utc) + timedelta(
                 minutes=expiracao_token
             )
@@ -60,7 +60,7 @@ class AuthService:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
-        except ExpiredSignatureError:
+        except (ExpiredSignatureError, DecodeError, Exception):
             return {}
 
     def atualizar_token(self, refresh_token_codificado: str) -> tuple[str, str]:
