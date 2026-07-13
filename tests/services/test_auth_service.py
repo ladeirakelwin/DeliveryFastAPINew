@@ -61,3 +61,20 @@ def test_auth_service_se_enviar_valor_invalido_para_atualizar_token_ele_sobe_401
 
     with pytest.raises(HTTPException):
         auth_service.atualizar_token(access_token)
+
+
+def test_auth_service_se_ao_atualizar_token_valido_retorna_novos_token():
+    auth_service = AuthService()
+
+    refresh_token = auth_service.criar_token({"sub": "sapopemba"}, True)
+
+    novo_access_token, novo_refresh_token = auth_service.atualizar_token(refresh_token)
+
+    assert novo_access_token
+    assert novo_refresh_token
+
+    novo_access_token_decodificado = AuthService.decodificar_token(novo_access_token)
+    novo_refresh_token_decodificado = AuthService.decodificar_token(novo_refresh_token)
+
+    assert novo_access_token_decodificado.get("type") == "access"
+    assert novo_refresh_token_decodificado.get("type") == "refresh"
