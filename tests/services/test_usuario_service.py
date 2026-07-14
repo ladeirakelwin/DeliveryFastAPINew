@@ -76,3 +76,18 @@ def test_usuario_service_se_criando_usuario_novo(mock_get_db):
         and hasattr(usuario_criado, "admin")
         and hasattr(usuario_criado, "ativo")
     )
+
+
+def test_usuario_service_se_nao_sera_possivel_criar_usuario_existente(user_seeded_db):
+    usuario_service = UsuarioService(user_seeded_db)
+
+    for usuario_test in VALID_USERS:
+        with pytest.raises(HTTPException) as scenario:
+            usuario_service.criar_usuario(
+                usuario_test.get("email"),
+                usuario_test.get("nome"),
+                usuario_test.get("senha"),
+            )
+
+        assert scenario.value.status_code == 409
+        assert scenario.value.detail == "Conta já existe!"
