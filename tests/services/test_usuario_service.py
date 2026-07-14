@@ -3,8 +3,8 @@ from fastapi.exceptions import HTTPException
 import pytest
 
 VALID_USERS: list = [
-    {"nome": "adm", "senha": "adm"},
-    {"nome": "teste", "senha": "teste"},
+    {"nome": "adm", "email": "adm@adm.com", "senha": "adm"},
+    {"nome": "teste", "email": "teste@test.com", "senha": "teste"},
 ]
 INVALID_USERS: list = [
     {"nome": "nonecxiste", "senha": "nonecxiste"},
@@ -57,3 +57,22 @@ def test_usuario_service_se_nao_consigo_logar_com_usuario_invalido_ou_inativo(
 
         assert scenario_3.value.status_code == 403
         assert scenario_3.value.detail == "Usuário inativo!"
+
+
+def test_usuario_service_se_criando_usuario_novo(mock_get_db):
+    usuario_novo = VALID_USERS[0]
+
+    usuario_service = UsuarioService(mock_get_db)
+
+    usuario_criado = usuario_service.criar_usuario(
+        usuario_novo.get("email"), usuario_novo.get("nome"), usuario_novo.get("senha")
+    )
+
+    assert usuario_novo.get("nome") == usuario_criado.nome
+    assert (
+        hasattr(usuario_criado, "nome")
+        and hasattr(usuario_criado, "email")
+        and hasattr(usuario_criado, "senha")
+        and hasattr(usuario_criado, "admin")
+        and hasattr(usuario_criado, "ativo")
+    )
