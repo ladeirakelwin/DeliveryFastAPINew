@@ -65,7 +65,9 @@ def test_usuario_service_se_criando_usuario_novo(mock_get_db):
     usuario_service = UsuarioService(mock_get_db)
 
     usuario_criado = usuario_service.criar_usuario(
-        usuario_novo.get("email"), usuario_novo.get("nome"), usuario_novo.get("senha")
+        email=usuario_novo.get("email"),
+        nome=usuario_novo.get("nome"),
+        senha=usuario_novo.get("senha"),
     )
 
     assert usuario_novo.get("nome") == usuario_criado.nome
@@ -84,10 +86,25 @@ def test_usuario_service_se_nao_sera_possivel_criar_usuario_existente(user_seede
     for usuario_test in VALID_USERS:
         with pytest.raises(HTTPException) as scenario:
             usuario_service.criar_usuario(
-                usuario_test.get("email"),
-                usuario_test.get("nome"),
-                usuario_test.get("senha"),
+                email=usuario_test.get("email"),
+                nome=usuario_test.get("nome"),
+                senha=usuario_test.get("senha"),
             )
 
         assert scenario.value.status_code == 409
         assert scenario.value.detail == "Conta já existe!"
+
+
+def test_usuario_service_se_ocorrera_erro_ao_enviar_valores_incorretos(mock_get_db):
+    usuario_service = UsuarioService(mock_get_db)
+
+    for usuario_test in VALID_USERS:
+        with pytest.raises(HTTPException) as scenario:
+            usuario_service.criar_usuario(
+                email=usuario_test.get("email"),
+                nome=usuario_test.get("nome"),
+                senha=True,  # type: ignore
+            )
+
+        assert scenario.value.status_code == 500
+        assert scenario.value.detail == "Erro inesperado!"
