@@ -1,4 +1,5 @@
 from src.services.usuario_service import UsuarioService
+from src.services.auth_service import AuthService
 from fastapi.exceptions import HTTPException
 import pytest
 
@@ -108,3 +109,23 @@ def test_usuario_service_se_ocorrera_erro_ao_enviar_valores_incorretos(mock_get_
 
         assert scenario.value.status_code == 500
         assert scenario.value.detail == "Erro inesperado!"
+
+
+def test_usuario_service_obtencao_do_usuario_via_token(user_seeded_db):
+    usuario_service = UsuarioService(user_seeded_db)
+
+    for usuario_existente in VALID_USERS:
+        token = AuthService().criar_token({"sub": usuario_existente.get("nome")})
+        usuario_atual = usuario_service.obter_usuario_atual(token)
+
+        assert usuario_existente.get("nome") == usuario_atual.nome
+        assert (
+            hasattr(usuario_atual, "nome")
+            and hasattr(usuario_atual, "email")
+            and hasattr(usuario_atual, "senha")
+            and hasattr(usuario_atual, "admin")
+            and hasattr(usuario_atual, "ativo")
+        )
+
+
+# testar se o token é de acesso ou não
