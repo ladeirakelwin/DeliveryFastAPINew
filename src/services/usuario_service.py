@@ -101,8 +101,8 @@ class UsuarioService:
                 raise self.EXCECAO_CREDENCIAL
             else:
                 raise self.USUARIO_INATIVO
-        except Exception:
-            raise self.EXCECAO_CREDENCIAL
+        except Exception as error:
+            raise error
 
 
 def obter_usuario_autenticado(
