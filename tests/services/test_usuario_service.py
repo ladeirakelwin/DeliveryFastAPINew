@@ -145,5 +145,22 @@ def test_usuario_service_se_nao_consigo_obter_usuario_atual_com_refresh_token(
         assert scenario.value.detail == "Não foi possível validar credencial"
 
 
+def test_usuario_service_se_não_consigo_obter_usuario_inativo_pelo_token(
+    user_seeded_db,
+):
+    user_service = UsuarioService(user_seeded_db)
+    auth_service = AuthService()
+    inactive_users = [INVALID_USERS[1], INVALID_USERS[2]]
+
+    for inactive_user in inactive_users:
+        access_token = auth_service.criar_token({"sub": inactive_user.get("nome")})
+
+        with pytest.raises(HTTPException) as scenario:
+            user_service.obter_usuario_atual(access_token)
+
+        assert scenario.value.status_code == 403
+        assert scenario.value.detail == "Usuário inativo!"
+
+
 # testar se o usuario é ativo
 # testar se o usuario é valido
