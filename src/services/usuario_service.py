@@ -7,7 +7,6 @@ from src.utils.senha import validar_senha, criptografar_senha
 from typing import Annotated
 from database import DBSession
 from dependencies import oauth2_scheme
-from jwt.exceptions import InvalidTokenError
 from src.services.auth_service import AuthService
 
 
@@ -102,9 +101,6 @@ class UsuarioService:
                 raise self.EXCECAO_CREDENCIAL
             else:
                 raise self.USUARIO_INATIVO
-
-        except InvalidTokenError:
-            raise self.EXCECAO_CREDENCIAL
         except Exception:
             raise self.EXCECAO_CREDENCIAL
 
