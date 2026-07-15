@@ -1,6 +1,7 @@
 from src.services.usuario_service import UsuarioService
 from src.services.auth_service import AuthService
 from fastapi.exceptions import HTTPException
+from jwt.exceptions import InvalidTokenError
 import pytest
 
 VALID_USERS: list = [
