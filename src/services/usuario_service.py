@@ -97,6 +97,12 @@ class UsuarioService:
 
             return usuario
 
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                raise self.EXCECAO_CREDENCIAL
+            else:
+                raise self.USUARIO_INATIVO
+
         except InvalidTokenError:
             raise self.EXCECAO_CREDENCIAL
         except Exception:
