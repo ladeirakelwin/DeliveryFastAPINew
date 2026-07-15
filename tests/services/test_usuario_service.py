@@ -129,3 +129,21 @@ def test_usuario_service_obtencao_do_usuario_via_token(user_seeded_db):
 
 
 # testar se o token é de acesso ou não
+def test_usuario_service_se_nao_consigo_obter_usuario_atual_com_refresh_token(
+    user_seeded_db,
+):
+    # obter refresh token
+    user_service = UsuarioService(user_seeded_db)
+    auth_service = AuthService()
+    for user in VALID_USERS:
+        refresh_token = auth_service.criar_token({"sub": user.get("nome")}, True)
+
+        with pytest.raises(HTTPException) as scenario:
+            user_service.obter_usuario_atual(refresh_token)
+
+        assert scenario.value.status_code == 401
+        assert scenario.value.detail == "Não foi possível validar credencial"
+
+
+# testar se o usuario é ativo
+# testar se o usuario é valido
