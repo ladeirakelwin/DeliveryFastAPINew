@@ -38,3 +38,19 @@ def test_pedido_service_se_nao_consigo_criar_pedido_com_usuario_invalido(
 
         assert exc.value.status_code == 401
         assert exc.value.detail == "Usuario não autorizado!"
+
+
+def test_pedido_service_se_eh_tratado_error_inesperado_ao_criar_pedido(
+    user_seeded_db,
+):
+    pedido_service = PedidoService(user_seeded_db)
+
+    for invalid_user in INVALID_USERS:
+        with pytest.raises(HTTPException) as exc:
+            pedido_service.criando_pedido(invalid_user.get("id"), user_seeded_db)
+
+        assert exc.value.status_code == 422
+        assert (
+            exc.value.detail
+            == "Não foi possível criar o pedido, tente novamente mais tarde!"
+        )
