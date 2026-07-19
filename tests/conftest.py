@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from src.utils.senha import criptografar_senha
-from models import Usuario
+from models import Usuario, Pedido
 from database import Base
 import pytest
 
@@ -41,7 +41,7 @@ def mock_get_db(db_engine):
 
 
 @pytest.fixture(scope="function")
-def user_seeded_db(mock_get_db):
+def user_seeded_db(mock_get_db) -> Session:
     """Banco com usuários padrões"""
 
     mock_get_db.add(
@@ -87,3 +87,18 @@ def user_seeded_db(mock_get_db):
     mock_get_db.commit()
 
     return mock_get_db
+
+
+@pytest.fixture(scope="function")
+def order_seeded_db(user_seeded_db):
+    user_seeded_db.add_all(
+        [
+            Pedido(1),
+            Pedido(2),
+            Pedido(1),
+            Pedido(2),
+        ]
+    )
+    user_seeded_db.commit()
+
+    return user_seeded_db
