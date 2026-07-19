@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from fastapi import status
+from src.services.usuario_service import UsuarioService
 from schemas import ItemPedidoSchema, PaginationSchema
 from typing import Literal
 
@@ -48,17 +49,27 @@ class PedidoService:
         item_pedido = self.db.scalar(item_pedido_db)
         return item_pedido
 
-    def criando_pedido(self, id_usuario: int) -> Pedido:
+    def criando_pedido(
+        self, id_usuario: int, usuario_service: UsuarioService
+    ) -> Pedido:
         status_pedido: str = "PENDENTE"
         preco: int = 0
         try:
+            _, usuario_ativo = usuario_service.obter_status_usuario(id=id_usuario)
+            if not usuario_ativo:
+                raise self.USUARIO_NAO_AUTORIZADO
+
             novo_pedido = Pedido(id_usuario, status_pedido, preco)
 
             self.db.add(novo_pedido)
             self.db.commit()
 
             return novo_pedido
-        except Exception:
+
+        except HTTPException:
+            raise self.USUARIO_NAO_AUTORIZADO
+
+        except Exception as err:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Não foi possível criar o pedido, tente novamente mais tarde!",
