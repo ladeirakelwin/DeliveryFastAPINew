@@ -85,3 +85,20 @@ def test_pedido_service_se_nao_consigo_alterar_status_pedido_inexistente(
 
     assert exc.value.status_code == 404
     assert exc.value.detail == "Pedido não encontrado!"
+
+
+def test_pedido_service_se_nao_consigo_alterar_status_pedido_sem_devidas_permissões(
+    order_seeded_db,
+):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.alterar_status_pedido(1, "CANCELADO", usuario)
+
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "Usuario não autorizado!"
