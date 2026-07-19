@@ -109,6 +109,24 @@ class UsuarioService:
         except Exception as error:
             raise error
 
+    def obter_status_usuario(
+        self, id: int = 0, email: str = "", nome: str = ""
+    ) -> tuple[bool, bool]:
+        resposta_padrao = (False, False)
+        usuario = self._obtendo_usuario_id(id)
+        if usuario:
+            return (usuario.admin, usuario.ativo)
+
+        usuario = self._obtendo_usuario_email(email)
+        if usuario:
+            return (usuario.admin, usuario.ativo)
+
+        usuario = self._obtendo_usuario_nome(nome)
+        if usuario:
+            return (usuario.admin, usuario.ativo)
+
+        return resposta_padrao
+
 
 def obter_usuario_autenticado(
     db: DBSession, token: Annotated[str, Depends(oauth2_scheme)]
