@@ -69,7 +69,7 @@ class PedidoService:
         except HTTPException:
             raise self.USUARIO_NAO_AUTORIZADO
 
-        except Exception as err:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Não foi possível criar o pedido, tente novamente mais tarde!",
