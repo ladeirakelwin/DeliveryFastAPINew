@@ -14,6 +14,8 @@ INVALID_USERS: list = [
     {"id": 5, "nome": "nonecxiste", "senha": "nonecxiste"},
 ]
 
+ORDERS_ID = [1, 2]
+
 
 def test_pedido_service_se_consigo_criar_pedido(user_seeded_db):
     pedido_service = PedidoService(user_seeded_db)
@@ -54,3 +56,16 @@ def test_pedido_service_se_eh_tratado_error_inesperado_ao_criar_pedido(
             exc.value.detail
             == "Não foi possível criar o pedido, tente novamente mais tarde!"
         )
+
+
+def test_pedido_service_se_consigo_alterar_status_pedido(order_seeded_db):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    for id_pedido, user in enumerate(VALID_USERS):
+        id_pedido += 1
+        usuario = usuario_service.autenticar_usuario(
+            user.get("nome"), user.get("senha")
+        )
+        pedido = pedido_service.alterar_status_pedido(id_pedido, "CANCELADO", usuario)
+        assert pedido.status == "CANCELADO"
