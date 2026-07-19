@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from src.services.usuario_service import CurrentUser
+from src.services.usuario_service import CurrentUser, UsuarioService
 from src.services.pedido_service import PedidoService
 from schemas import (
     IdPedidoResponseSchema,
@@ -18,7 +18,7 @@ order_routes = APIRouter(prefix="/pedidos", tags=["Order Routes"])
 
 @order_routes.post("/criar", response_model=IdPedidoResponseSchema)
 def criar_pedido(usuario: CurrentUser, db: DBSession):
-    novo_pedido = PedidoService(db).criando_pedido(usuario.id)
+    novo_pedido = PedidoService(db).criando_pedido(usuario.id, UsuarioService(db))
     return IdPedidoResponseSchema.model_validate(novo_pedido)
 
 
