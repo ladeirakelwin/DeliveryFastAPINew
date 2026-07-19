@@ -33,6 +33,11 @@ class UsuarioService:
         usuario = self.db.scalar(usuario_db)
         return usuario
 
+    def _obtendo_usuario_id(self, id: int) -> Usuario | None:
+        usuario_db = select(Usuario).where(Usuario.id == id)
+        usuario = self.db.scalar(usuario_db)
+        return usuario
+
     def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
         usuario = self._obtendo_usuario_nome(apelido)
 
