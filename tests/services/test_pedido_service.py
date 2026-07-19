@@ -1,5 +1,8 @@
 from src.services.pedido_service import PedidoService
+from src.services.usuario_service import UsuarioService
 from models import Pedido
+from fastapi.exceptions import HTTPException
+import pytest
 
 VALID_USERS: list = [
     {"id": 1, "nome": "adm", "email": "adm@adm.com", "senha": "adm"},
@@ -15,6 +18,23 @@ INVALID_USERS: list = [
 def test_pedido_service_se_consigo_criar_pedido(user_seeded_db):
     pedido_service = PedidoService(user_seeded_db)
     for user in VALID_USERS:
-        pedido = pedido_service.criando_pedido(user.get("id"))
+        pedido = pedido_service.criando_pedido(
+            user.get("id"), UsuarioService(user_seeded_db)
+        )
 
         assert isinstance(pedido, Pedido)
+
+
+def test_pedido_service_se_nao_consigo_criar_pedido_com_usuario_invalido(
+    user_seeded_db,
+):
+    pedido_service = PedidoService(user_seeded_db)
+
+    for invalid_user in INVALID_USERS:
+        with pytest.raises(HTTPException) as exc:
+            pedido_service.criando_pedido(
+                invalid_user.get("id"), UsuarioService(user_seeded_db)
+            )
+
+        assert exc.value.status_code == 401
+        assert exc.value.detail == "Usuario não autorizado!"
