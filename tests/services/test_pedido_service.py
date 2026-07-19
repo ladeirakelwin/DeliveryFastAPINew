@@ -62,10 +62,26 @@ def test_pedido_service_se_consigo_alterar_status_pedido(order_seeded_db):
     pedido_service = PedidoService(order_seeded_db)
     usuario_service = UsuarioService(order_seeded_db)
 
-    for id_pedido, user in enumerate(VALID_USERS):
-        id_pedido += 1
+    for id_pedido, user in enumerate(VALID_USERS, start=1):
         usuario = usuario_service.autenticar_usuario(
             user.get("nome"), user.get("senha")
         )
         pedido = pedido_service.alterar_status_pedido(id_pedido, "CANCELADO", usuario)
         assert pedido.status == "CANCELADO"
+
+
+def test_pedido_service_se_nao_consigo_alterar_status_pedido_inexistente(
+    order_seeded_db,
+):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.alterar_status_pedido(0, "CANCELADO", usuario)
+
+    assert exc.value.status_code == 404
+    assert exc.value.detail == "Pedido não encontrado!"
