@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from src.utils.senha import criptografar_senha
-from models import Usuario, Pedido
+from models import Usuario, Pedido, ItensPedido
 from database import Base
 import pytest
 
@@ -90,7 +90,7 @@ def user_seeded_db(mock_get_db) -> Session:
 
 
 @pytest.fixture(scope="function")
-def order_seeded_db(user_seeded_db):
+def order_seeded_db(user_seeded_db) -> Session:
     user_seeded_db.add_all(
         [
             Pedido(1),
@@ -102,3 +102,18 @@ def order_seeded_db(user_seeded_db):
     user_seeded_db.commit()
 
     return user_seeded_db
+
+
+@pytest.fixture(scope="function")
+def order_item_seeded_db(order_seeded_db):
+    order_seeded_db.add_all(
+        [
+            ItensPedido(1, "marguerita", "G", "70", 1),
+            ItensPedido(2, "atum", "GG", "90", 2),
+            ItensPedido(3, "portuguesa", "M", "60", 3),
+            ItensPedido(4, "calabresa", "P", "50", 4),
+        ]
+    )
+    order_seeded_db.commit()
+
+    return order_seeded_db
