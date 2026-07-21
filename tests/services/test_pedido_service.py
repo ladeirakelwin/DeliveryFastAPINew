@@ -1,6 +1,7 @@
 from src.services.pedido_service import PedidoService
 from src.services.usuario_service import UsuarioService
 from models import Pedido
+from schemas import PaginationSchema
 from fastapi.exceptions import HTTPException
 import pytest
 
@@ -102,3 +103,16 @@ def test_pedido_service_se_nao_consigo_alterar_status_pedido_sem_devidas_permiss
 
     assert exc.value.status_code == 401
     assert exc.value.detail == "Usuario não autorizado!"
+
+
+def test_pedido_service_se_admin_consegue_listar_todos_pedidos(order_seeded_db):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    admin = VALID_USERS[0]
+    usuario = usuario_service.autenticar_usuario(admin.get("nome"), admin.get("senha"))
+    pedidos = pedido_service.listar_todos_pedidos(
+        usuario, PaginationSchema(offset=0, limit=50)
+    )
+
+    assert len(pedidos) == 4
