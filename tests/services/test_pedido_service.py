@@ -256,3 +256,26 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ha_erro_ao_o
 
     assert exc.value.detail == "Erro ao buscar pedido! Tente novamente mais tarde."
     assert exc.value.status_code == 400
+
+
+def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ele_nao_existe(
+    order_item_seeded_db,
+):
+    pedido_service = PedidoService(order_item_seeded_db)
+    usuario_service = UsuarioService(order_item_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.adicionando_item_pedido(
+            5,
+            usuario,
+            ItemPedidoSchema(
+                quantidade=1, sabor="pesto", tamanho="G", preco_unitario=110
+            ),
+        )
+
+    assert exc.value.detail == "Pedido não encontrado!"
+    assert exc.value.status_code == 404
