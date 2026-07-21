@@ -116,3 +116,51 @@ def test_pedido_service_se_admin_consegue_listar_todos_pedidos(order_seeded_db):
     )
 
     assert len(pedidos) == 4
+
+
+def test_pedido_service_se_quem_nao_tem_admin_eh_proibido_de_listar_todos_pedido(
+    order_seeded_db,
+):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    not_admin = VALID_USERS[1]
+
+    usuario = usuario_service.autenticar_usuario(
+        not_admin.get("nome"), not_admin.get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.listar_todos_pedidos(
+            usuario, PaginationSchema(offset=0, limit=50)
+        )
+
+    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.status_code == 401
+
+
+def test_pedido_service_se_consigo_listar_pedidos_de_um_usuario(order_seeded_db):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    for users in VALID_USERS:
+        usuario = usuario_service.autenticar_usuario(
+            users.get("nome"), users.get("senha")
+        )
+        pedidos = pedido_service.listar_todos_pedidos_usuarios(usuario)
+
+        assert len(pedidos) == 2
+
+
+def test_pedido_service_se_consigo_remover_item_de_um_pedido(order_item_seeded_db):
+    pedido_service = PedidoService(order_item_seeded_db)
+    usuario_service = UsuarioService(order_item_seeded_db)
+
+    for index, users in enumerate(VALID_USERS, start=1):
+        usuario = usuario_service.autenticar_usuario(
+            users.get("nome"), users.get("senha")
+        )
+
+        pedidos = pedido_service.remover_item_pedido(index, usuario)
+
+        assert len(pedidos.itens) == 0
