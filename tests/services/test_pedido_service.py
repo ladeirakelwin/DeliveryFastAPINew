@@ -279,3 +279,26 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ele_nao_exis
 
     assert exc.value.detail == "Pedido não encontrado!"
     assert exc.value.status_code == 404
+
+
+def test_pedido_service_se_nao_consigo_adicionar_item_pedido_sem_permissao(
+    order_item_seeded_db,
+):
+    pedido_service = PedidoService(order_item_seeded_db)
+    usuario_service = UsuarioService(order_item_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.adicionando_item_pedido(
+            1,
+            usuario,
+            ItemPedidoSchema(
+                quantidade=1, sabor="pesto", tamanho="G", preco_unitario=110
+            ),
+        )
+
+    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.status_code == 401
