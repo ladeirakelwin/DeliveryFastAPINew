@@ -180,3 +180,20 @@ def test_pedido_service_se_consigo_remover_item_inexistente_de_um_pedido(
 
     assert exc.value.status_code == 404
     assert exc.value.detail == "Pedido associado ao item pedido não encontrado!"
+
+
+def test_pedido_service_se_nao_consigo_remover_item_pedido_sem_acesso(
+    order_item_seeded_db,
+):
+    pedido_service = PedidoService(order_item_seeded_db)
+    usuario_service = UsuarioService(order_item_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.remover_item_pedido(1, usuario)
+
+    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.status_code == 401
