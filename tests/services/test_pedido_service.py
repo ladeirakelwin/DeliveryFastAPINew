@@ -1,7 +1,7 @@
 from src.services.pedido_service import PedidoService
 from src.services.usuario_service import UsuarioService
 from models import Pedido
-from schemas import PaginationSchema
+from schemas import PaginationSchema, ItemPedidoSchema
 from fastapi.exceptions import HTTPException
 import pytest
 
@@ -213,3 +213,46 @@ def test_pedido_service_se_nao_consigo_remover_item_pedido_sem_acesso(
 
     assert exc.value.detail == "Usuario não autorizado!"
     assert exc.value.status_code == 401
+
+
+def test_pedido_service_se_consigo_adicionar_item_pedido(
+    order_seeded_db,
+):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+    )
+
+    pedido, item_pedido = pedido_service.adicionando_item_pedido(
+        1,
+        usuario,
+        ItemPedidoSchema(quantidade=1, sabor="pesto", tamanho="G", preco_unitario=110),
+    )
+
+    assert len(pedido.itens) == 1
+    assert item_pedido.sabor == "pesto"
+
+
+def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ha_erro_ao_obter_pedido(
+    order_item_seeded_db,
+):
+    pedido_service = PedidoService(order_item_seeded_db)
+    usuario_service = UsuarioService(order_item_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.adicionando_item_pedido(
+            {},  # type: ignore
+            usuario,
+            ItemPedidoSchema(
+                quantidade=1, sabor="pesto", tamanho="G", preco_unitario=110
+            ),
+        )
+
+    assert exc.value.detail == "Erro ao buscar pedido! Tente novamente mais tarde."
+    assert exc.value.status_code == 400
