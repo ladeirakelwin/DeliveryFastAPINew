@@ -164,3 +164,19 @@ def test_pedido_service_se_consigo_remover_item_de_um_pedido(order_item_seeded_d
         pedidos = pedido_service.remover_item_pedido(index, usuario)
 
         assert len(pedidos.itens) == 0
+
+
+def test_pedido_service_se_consigo_remover_item_inexistente_de_um_pedido(
+    order_seeded_db,
+):
+    pedido_service = PedidoService(order_seeded_db)
+    usuario_service = UsuarioService(order_seeded_db)
+
+    usuario = usuario_service.autenticar_usuario(
+        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+    )
+    with pytest.raises(HTTPException) as exc:
+        pedido_service.remover_item_pedido(5, usuario)
+
+    assert exc.value.status_code == 404
+    assert exc.value.detail == "Item pedido não encontrado!"
