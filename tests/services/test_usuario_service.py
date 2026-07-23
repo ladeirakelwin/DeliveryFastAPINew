@@ -176,3 +176,21 @@ def test_usuario_service_se_não_consigo_obter_usuario_invalido_pelo_token(
 
     assert scenario.value.status_code == 401
     assert scenario.value.detail == "Não foi possível validar credencial"
+
+
+def test_usuario_service_se_consigo_buscar_status_usuario_pelo_email(user_seeded_db):
+    usuario_service = UsuarioService(user_seeded_db)
+
+    admin, ativo = usuario_service.obter_status_usuario(email="adm@adm.com")
+
+    assert admin
+    assert ativo
+
+
+def test_usuario_service_se_consigo_buscar_status_usuario_pelo_nome(user_seeded_db):
+    usuario_service = UsuarioService(user_seeded_db)
+
+    admin, ativo = usuario_service.obter_status_usuario(nome="teste")
+
+    assert admin is False
+    assert ativo is True
