@@ -26,7 +26,7 @@ async def criar_conta(usuario: UsuarioCreate, db: DBSession):
     return UsuarioResponseSchema.model_validate(novo_usuario)
 
 
-@auth_routes.post("/login-form", response_model=TokenSchema)
+@auth_routes.post("/login-form", response_model=TokenSchema, status_code=201)
 async def autenticando_usuario(form_data: AccessTokenLogin, db: DBSession):
     usuario_service = UsuarioService(db)
     usuario = usuario_service.autenticar_usuario(form_data.username, form_data.password)
