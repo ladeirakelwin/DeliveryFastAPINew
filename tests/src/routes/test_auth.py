@@ -26,3 +26,16 @@ def test_auth_routes_se_nao_consigo_criar_uma_conta_existente(client):
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Conta já existe!"
+
+
+def test_auth_routes_se_consigo_obter_token(client_user):
+    data = {
+        "password": "teste",
+        "username": "teste",
+    }
+
+    response: Response = client_user.post("/auth/login-form", data=data)
+
+    assert response.status_code == 201
+    assert response.json().get("refresh_token") is not None
+    assert response.json().get("access_token") is not None
