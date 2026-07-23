@@ -16,7 +16,7 @@ auth_routes = APIRouter(prefix="/auth", tags=["Auth Routes"])
 AccessTokenLogin = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 
-@auth_routes.post("/criar-conta", response_model=UsuarioResponseSchema)
+@auth_routes.post("/criar-conta", response_model=UsuarioResponseSchema, status_code=201)
 async def criar_conta(usuario: UsuarioCreate, db: DBSession):
     usuario_service = UsuarioService(db)
     novo_usuario = usuario_service.criar_usuario(
