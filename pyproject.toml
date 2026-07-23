@@ -28,7 +28,7 @@ pythonpath = [
 minversion = "7.0"
 
 # Default command-line arguments applied on every run
-addopts = "-sv"
+addopts = "-sv --cov=src --cov-report html"
 
 # Directories where pytest should look for tests
 testpaths = [
