@@ -152,3 +152,21 @@ def client(mock_get_db):
 
     # Clean up overrides after the test finishes
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def client_user(user_seeded_db):
+    """Overrides the get_db dependency and returns the TestClient."""
+
+    def _override_get_db():
+        try:
+            yield user_seeded_db
+        finally:
+            pass
+
+    # Inject the mock session into FastAPI
+    app.dependency_overrides[get_db] = _override_get_db
+    yield TestClient(app)
+
+    # Clean up overrides after the test finishes
+    app.dependency_overrides.clear()
