@@ -2,7 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from src.utils.senha import criptografar_senha
 from models import Usuario, Pedido, ItensPedido
-from database import Base
+from fastapi.testclient import TestClient
+from main import app
+from database import Base, get_db
 import pytest
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -132,3 +134,21 @@ def order_item_without_order_seeded_db(user_seeded_db):
     user_seeded_db.commit()
 
     return user_seeded_db
+
+
+@pytest.fixture(scope="function")
+def client(mock_get_db):
+    """Overrides the get_db dependency and returns the TestClient."""
+
+    def _override_get_db():
+        try:
+            yield mock_get_db
+        finally:
+            pass
+
+    # Inject the mock session into FastAPI
+    app.dependency_overrides[get_db] = _override_get_db
+    yield TestClient(app)
+
+    # Clean up overrides after the test finishes
+    app.dependency_overrides.clear()
