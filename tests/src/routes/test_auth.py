@@ -1,6 +1,5 @@
 from httpx2 import Response
-from fastapi.exceptions import HTTPException
-import pytest
+import json
 
 
 def test_auth_routes_se_consigo_criar_uma_conta(client):
@@ -63,3 +62,23 @@ def test_auth_routes_se_nao_consigo_obter_token_com_usuario_inativo(client_user)
     response: Response = client_user.post("/auth/login-form", data=data)
 
     assert response.status_code == 403
+
+
+def test_auth_routes_se_consigo_obter_novos_tokens(client_user):
+    data = {
+        "password": "adm",
+        "username": "adm",
+    }
+
+    response_auth: Response = client_user.post("/auth/login-form", data=data)
+    refresh_token = str(response_auth.json()["refresh_token"])
+
+    refresh_data = json.dumps({"refresh_token": refresh_token})
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
+    response_tokens: Response = client_user.post(
+        "/auth/refresh", headers=headers, content=refresh_data
+    )
+
+    assert response_tokens.status_code == 200
+    assert response_tokens.json()["access_token"] != ""
+    assert response_tokens.json()["refresh_token"] != ""
