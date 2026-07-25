@@ -82,3 +82,26 @@ def test_auth_routes_se_consigo_obter_novos_tokens(client_user):
     assert response_tokens.status_code == 200
     assert response_tokens.json()["access_token"] != ""
     assert response_tokens.json()["refresh_token"] != ""
+
+
+def test_auth_routes_se_nao_consigo_obter_novos_tokens_com_token_invalido(client_user):
+    data = {
+        "password": "adm",
+        "username": "adm",
+    }
+
+    response_auth: Response = client_user.post("/auth/login-form", data=data)
+    refresh_token = str(response_auth.json()["access_token"])
+
+    refresh_data = json.dumps({"refresh_token": refresh_token})
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
+    response_tokens: Response = client_user.post(
+        "/auth/refresh", headers=headers, content=refresh_data
+    )
+    refresh_data2 = json.dumps({"refresh_token": ""})
+    response_tokens2: Response = client_user.post(
+        "/auth/refresh", headers=headers, content=refresh_data2
+    )
+
+    assert response_tokens.status_code == 401
+    assert response_tokens2.status_code == 401
