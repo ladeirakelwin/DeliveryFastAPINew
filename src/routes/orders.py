@@ -16,7 +16,7 @@ from typing import Annotated
 order_routes = APIRouter(prefix="/pedidos", tags=["Order Routes"])
 
 
-@order_routes.post("/criar", response_model=IdPedidoResponseSchema)
+@order_routes.post("/criar", response_model=IdPedidoResponseSchema, status_code=201)
 def criar_pedido(usuario: CurrentUser, db: DBSession):
     novo_pedido = PedidoService(db).criando_pedido(usuario.id, UsuarioService(db))
     return IdPedidoResponseSchema.model_validate(novo_pedido)
