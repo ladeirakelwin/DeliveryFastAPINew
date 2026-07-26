@@ -170,3 +170,48 @@ def client_user(user_seeded_db):
 
     # Clean up overrides after the test finishes
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def client_order(order_seeded_db):
+    def _override_get_db():
+        try:
+            yield order_seeded_db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def client_order_item(order_item_seeded_db):
+    def _override_get_db():
+        try:
+            yield order_item_seeded_db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def client_order_item_without_order(order_item_without_order_seeded_db):
+    def _override_get_db():
+        try:
+            yield order_item_without_order_seeded_db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
