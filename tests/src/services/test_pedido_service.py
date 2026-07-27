@@ -40,7 +40,7 @@ def test_pedido_service_se_nao_consigo_criar_pedido_com_usuario_invalido(
             )
 
         assert exc.value.status_code == 401
-        assert exc.value.detail == "Usuario não autorizado!"
+        assert exc.value.detail == "Usuário não autorizado ou token expirado!"
 
 
 def test_pedido_service_se_eh_tratado_error_inesperado_ao_criar_pedido(
@@ -102,7 +102,7 @@ def test_pedido_service_se_nao_consigo_alterar_status_pedido_sem_devidas_permiss
         pedido_service.alterar_status_pedido(1, "CANCELADO", usuario)
 
     assert exc.value.status_code == 401
-    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.detail == "Usuário não autorizado ou token expirado!"
 
 
 def test_pedido_service_se_admin_consegue_listar_todos_pedidos(order_seeded_db):
@@ -135,7 +135,7 @@ def test_pedido_service_se_quem_nao_tem_admin_eh_proibido_de_listar_todos_pedido
             usuario, PaginationSchema(offset=0, limit=50)
         )
 
-    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.detail == "Usuário não autorizado ou token expirado!"
     assert exc.value.status_code == 401
 
 
@@ -211,7 +211,7 @@ def test_pedido_service_se_nao_consigo_remover_item_pedido_sem_acesso(
     with pytest.raises(HTTPException) as exc:
         pedido_service.remover_item_pedido(1, usuario)
 
-    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.detail == "Usuário não autorizado ou token expirado!"
     assert exc.value.status_code == 401
 
 
@@ -300,5 +300,5 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_sem_permissao(
             ),
         )
 
-    assert exc.value.detail == "Usuario não autorizado!"
+    assert exc.value.detail == "Usuário não autorizado ou token expirado!"
     assert exc.value.status_code == 401
