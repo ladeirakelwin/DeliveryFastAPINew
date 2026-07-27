@@ -5,18 +5,12 @@ from dependencies import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
 )
-from fastapi.exceptions import HTTPException
-from fastapi import status
 from jwt.exceptions import ExpiredSignatureError, DecodeError
+from src.exceptions import TOKEN_ERROR, UNAUTHORIZED_USER
 import jwt
 
 
 class AuthService:
-    TOKEN_ERROR = HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Erro ao gerar token! Tente novamente mais tarde.",
-    )
-
     def criar_token(
         self,
         data: dict,
@@ -26,7 +20,7 @@ class AuthService:
     ) -> str:
 
         if not isinstance(is_refresh_token, bool):
-            raise self.TOKEN_ERROR
+            raise TOKEN_ERROR
 
         try:
             if not data.get("sub"):
@@ -51,7 +45,7 @@ class AuthService:
             token = jwt.encode(token_cru, SECRET_KEY, ALGORITHM)
 
         except Exception:
-            raise self.TOKEN_ERROR
+            raise TOKEN_ERROR
 
         return token
 
@@ -67,10 +61,7 @@ class AuthService:
         refresh_token = self.decodificar_token(refresh_token_codificado)
 
         if not refresh_token or refresh_token.get("type") != "refresh":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não autorizado ou token expirado!",
-            )
+            raise UNAUTHORIZED_USER
 
         novo_refresh_token = self.criar_token({"sub": refresh_token.get("sub")}, True)
         novo_access_token = self.criar_token({"sub": refresh_token.get("sub")}, False)

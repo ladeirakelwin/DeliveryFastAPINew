@@ -2,20 +2,20 @@ from models import Pedido, Usuario, ItensPedido
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
-from fastapi import status
 from src.services.usuario_service import UsuarioService
 from schemas import ItemPedidoSchema, PaginationSchema
+from src.exceptions import (
+    UNAUTHORIZED_USER,
+    ORDER_ITEM_NOT_FOUNDED,
+    ORDER_ITEM_WITH_ORDER_NOT_FOUNDED,
+    ORDER_NOT_FOUNDED,
+    ORDER_ERROR,
+    ORDER_NOT_CREATED,
+)
 from typing import Literal
 
 
 class PedidoService:
-    PEDIDO_NAO_ENCONTRADO = HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado!"
-    )
-    USUARIO_NAO_AUTORIZADO = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario não autorizado!"
-    )
-
     def __init__(self, db: Session):
         self.db = db
 
@@ -57,7 +57,7 @@ class PedidoService:
         try:
             _, usuario_ativo = usuario_service.obter_status_usuario(id=id_usuario)
             if not usuario_ativo:
-                raise self.USUARIO_NAO_AUTORIZADO
+                raise UNAUTHORIZED_USER
 
             novo_pedido = Pedido(id_usuario, status_pedido, preco)
 
@@ -67,13 +67,10 @@ class PedidoService:
             return novo_pedido
 
         except HTTPException:
-            raise self.USUARIO_NAO_AUTORIZADO
+            raise UNAUTHORIZED_USER
 
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Não foi possível criar o pedido, tente novamente mais tarde!",
-            )
+            raise ORDER_NOT_CREATED
 
     def adicionando_item_pedido(
         self, id_pedido: int, usuario: Usuario, item_pedido: ItemPedidoSchema
@@ -81,15 +78,13 @@ class PedidoService:
         try:
             pedido = self._obtendo_pedido(id_pedido)
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Erro ao buscar pedido! Tente novamente mais tarde.",
-            )
+            raise ORDER_ERROR
+
         if not pedido:
-            raise self.PEDIDO_NAO_ENCONTRADO
+            raise ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido.usuario:
-            raise self.USUARIO_NAO_AUTORIZADO
+            raise UNAUTHORIZED_USER
 
         novo_item_pedido = ItensPedido(
             quantidade=item_pedido.quantidade,
@@ -110,21 +105,15 @@ class PedidoService:
         item_pedido = self._obtendo_item_pedido(id_item_pedido)
 
         if not item_pedido:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Item pedido não encontrado!",
-            )
+            raise ORDER_ITEM_NOT_FOUNDED
 
         pedido_associado = self._obtendo_pedido(item_pedido.pedido)
 
         if not pedido_associado:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Pedido associado ao item pedido não encontrado!",
-            )
+            raise ORDER_ITEM_WITH_ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido_associado.usuario:
-            raise self.USUARIO_NAO_AUTORIZADO
+            raise UNAUTHORIZED_USER
 
         self.db.delete(item_pedido)
         self.db.commit()
@@ -141,10 +130,10 @@ class PedidoService:
     ):
         pedido = self._obtendo_pedido(id_pedido)
         if not pedido:
-            raise self.PEDIDO_NAO_ENCONTRADO
+            raise ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido.usuario:
-            raise self.USUARIO_NAO_AUTORIZADO
+            raise UNAUTHORIZED_USER
 
         pedido.status = novo_status
         self.db.commit()
@@ -157,7 +146,7 @@ class PedidoService:
     ) -> list[Pedido]:
 
         if not usuario.admin:
-            raise self.USUARIO_NAO_AUTORIZADO
+            raise UNAUTHORIZED_USER
 
         pedidos = self._obtendo_pedidos(query)
 
