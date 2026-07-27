@@ -82,7 +82,7 @@ def listar_pedidos(
 
 
 @order_routes.get(
-    "/listar/pedido-usuario/", response_model=ListarTodosPedidosResponseSchema
+    "/listar/pedido-usuario", response_model=ListarTodosPedidosResponseSchema
 )
 def listar_pedidos_usuarios(usuario: CurrentUser, db: DBSession):
     pedidos = PedidoService(db).listar_todos_pedidos_usuarios(usuario)
