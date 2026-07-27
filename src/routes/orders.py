@@ -25,6 +25,7 @@ def criar_pedido(usuario: CurrentUser, db: DBSession):
 @order_routes.post(
     "/{id_pedido}/adicionar-item",
     response_model=AdicionarItemPedidoResponseSchema,
+    status_code=201,
 )
 def adicionar_item_pedido(
     id_pedido: int, usuario: CurrentUser, db: DBSession, item_pedido: ItemPedidoSchema
