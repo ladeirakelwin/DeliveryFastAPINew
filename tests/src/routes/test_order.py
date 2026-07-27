@@ -61,10 +61,11 @@ def test_order_routes_se_consigo_deletar_item_pedido(client_order_item):
         "Content-Type": "application/json",
     }
 
-    id_pedido = 1
-    novo_item_pedido = client_order_item.delete(
-        f"/pedidos/{id_pedido}/remover-item", headers=headers
-    )
+    for idx in range(4):
+        idx += 1
+        item_pedido = client_order_item.delete(
+            f"/pedidos/{idx}/remover-item", headers=headers
+        )
 
-    assert novo_item_pedido.status_code == 200
-    assert len(novo_item_pedido.json()["itens"]) == 0
+        assert item_pedido.status_code == 200
+        assert len(item_pedido.json()["itens"]) == 0
