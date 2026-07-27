@@ -47,3 +47,24 @@ def test_order_routes_se_consigo_criar_item_pedido(client_order):
 
     assert novo_item_pedido.status_code == 201
     assert int(novo_item_pedido.json()["pedido"]) == id_pedido
+
+
+def test_order_routes_se_consigo_deletar_item_pedido(client_order_item):
+    response_access_token = client_order_item.post(
+        "/auth/login-form", data={"username": "adm", "password": "adm"}
+    )
+
+    access_token = response_access_token.json()["access_token"]
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    id_pedido = 1
+    novo_item_pedido = client_order_item.delete(
+        f"/pedidos/{id_pedido}/remover-item", headers=headers
+    )
+
+    assert novo_item_pedido.status_code == 200
+    assert len(novo_item_pedido.json()["itens"]) == 0
