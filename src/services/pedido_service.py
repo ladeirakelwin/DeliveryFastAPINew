@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from src.services.usuario_service import UsuarioService
 from schemas import ItemPedidoSchema, PaginationSchema
-from src.exceptions import (
+from src.utils.exceptions import (
     UNAUTHORIZED_USER,
     ORDER_ITEM_NOT_FOUNDED,
     ORDER_ITEM_WITH_ORDER_NOT_FOUNDED,

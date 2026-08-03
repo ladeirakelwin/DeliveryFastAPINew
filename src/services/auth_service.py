@@ -6,7 +6,7 @@ from dependencies import (
     REFRESH_TOKEN_EXPIRE_DAYS,
 )
 from jwt.exceptions import ExpiredSignatureError, DecodeError
-from src.exceptions import TOKEN_ERROR, UNAUTHORIZED_USER
+from src.utils.exceptions import TOKEN_ERROR, UNAUTHORIZED_USER
 import jwt
 
 
