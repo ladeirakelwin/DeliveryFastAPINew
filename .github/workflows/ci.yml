@@ -51,6 +51,7 @@ jobs:
         uv run ruff format .
     - name: Test with pytest
       env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         ALGORITHM: ${{ secrets.ALGORITHM }}
         ACCESS_TOKEN_EXPIRE_MINUTES: 30
