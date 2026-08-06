@@ -41,6 +41,9 @@ jobs:
           **/uv.lock
           **/*.py.lock
     - name: Install dependencies
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
       run: |
         uv sync && uv run alembic upgrade head
     - name: Lint with ruff
