@@ -42,10 +42,15 @@ jobs:
           **/*.py.lock
     - name: Install dependencies
       run: |
-        uv sync
-    - name: Lint with flake8
+        uv sync && uv run alembic upgrade head
+    - name: Lint with ruff
       run: |
         uv run ruff format .
     - name: Test with pytest
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        ALGORITHM: ${{ secrets.ALGORITHM }}
+        ACCESS_TOKEN_EXPIRE_MINUTES: 30
+        REFRESH_TOKEN_EXPIRE_DAYS: 3
       run: |
         pytest --cov-fail-under=80
