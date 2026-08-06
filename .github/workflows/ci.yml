@@ -1,0 +1,51 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.12.13
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12.13"
+    - name: astral-sh/setup-uv
+    # You may pin to the exact commit or the version.
+    # uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      uses: astral-sh/setup-uv@v9.0.0
+      with:
+        # The version of uv to install e.g., `0.5.0` Defaults to the version in pyproject.toml or 'latest'.
+        version: "0.11.16" 
+        # The version of Python to set UV_PYTHON to
+        # python-version: # optional
+        # Use uv venv to activate a venv ready to be used by later steps. 
+        activate-environment: true
+        # Glob pattern to match files relative to the working directory to control the cache.
+        cache-dependency-glob: | # optional, default is **/*requirements*.txt
+          **/*requirements*.txt
+          **/pyproject.toml
+          **/uv.lock
+          **/*.py.lock
+    - name: Install dependencies
+      run: |
+        uv sync
+    - name: Lint with flake8
+      run: |
+        uv run ruff format .
+    - name: Test with pytest
+      run: |
+        pytest --cov-fail-under=80
