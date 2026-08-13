@@ -31,8 +31,8 @@ async def autenticando_usuario(form_data: AccessTokenLogin, db: DBSession):
     usuario_service = UsuarioService(db)
     usuario = usuario_service.autenticar_usuario(form_data.username, form_data.password)
 
-    access_token = AuthService().criar_token({"sub": usuario.nome})
-    refresh_token = AuthService().criar_token({"sub": usuario.nome}, True)
+    access_token = AuthService().criar_token({"sub": usuario.email})
+    refresh_token = AuthService().criar_token({"sub": usuario.email}, True)
 
     return TokenSchema(
         access_token=access_token, refresh_token=refresh_token, token_type="Bearer"
