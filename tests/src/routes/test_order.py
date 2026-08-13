@@ -1,10 +1,14 @@
+from tests.conftest import VALID_USERS
 import json
-from schemas import ItemPedidoSchema
 
 
 def test_order_routes_se_consigo_criar_pedido(client_user):
     response_access_token = client_user.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
     access_token = response_access_token.json()["access_token"]
     headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
@@ -16,7 +20,11 @@ def test_order_routes_se_consigo_criar_pedido(client_user):
 
 def test_order_routes_se_não_consigo_criar_pedido(client_user):
     response_access_token = client_user.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
     refresh_token = response_access_token.json()["refresh_token"]
     headers = {"Authorization": f"Bearer {refresh_token}", "Accept": "application/json"}
@@ -27,7 +35,11 @@ def test_order_routes_se_não_consigo_criar_pedido(client_user):
 
 def test_order_routes_se_consigo_criar_item_pedido(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
     access_token = response_access_token.json()["access_token"]
     headers = {
@@ -51,7 +63,11 @@ def test_order_routes_se_consigo_criar_item_pedido(client_order):
 
 def test_order_routes_se_consigo_deletar_item_pedido(client_order_item):
     response_access_token = client_order_item.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]
@@ -73,7 +89,11 @@ def test_order_routes_se_consigo_deletar_item_pedido(client_order_item):
 
 def test_order_routes_se_consigo_finalizar_pedido(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]
@@ -93,7 +113,11 @@ def test_order_routes_se_consigo_finalizar_pedido(client_order):
 
 def test_order_routes_se_consigo_cancelar_pedido(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]
@@ -113,7 +137,11 @@ def test_order_routes_se_consigo_cancelar_pedido(client_order):
 
 def test_order_routes_se_consigo_listar_pedidos(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "adm", "password": "adm"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]
@@ -131,7 +159,11 @@ def test_order_routes_se_consigo_listar_pedidos(client_order):
 
 def test_order_routes_se_nao_consigo_listar_pedidos(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "teste", "password": "teste"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[1].get("email"),
+            "password": VALID_USERS[1].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]
@@ -148,7 +180,11 @@ def test_order_routes_se_nao_consigo_listar_pedidos(client_order):
 
 def test_order_routes_se_consigo_listar_pedido_do_usuario(client_order):
     response_access_token = client_order.post(
-        "/auth/login-form", data={"username": "teste", "password": "teste"}
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[1].get("email"),
+            "password": VALID_USERS[1].get("senha"),
+        },
     )
 
     access_token = response_access_token.json()["access_token"]

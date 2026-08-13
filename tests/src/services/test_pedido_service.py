@@ -3,17 +3,9 @@ from src.services.usuario_service import UsuarioService
 from models import Pedido
 from schemas import PaginationSchema, ItemPedidoSchema
 from fastapi.exceptions import HTTPException
+from tests.conftest import VALID_USERS, INVALID_USERS
 import pytest
 
-VALID_USERS: list = [
-    {"id": 1, "nome": "adm", "email": "adm@adm.com", "senha": "adm"},
-    {"id": 2, "nome": "teste", "email": "teste@test.com", "senha": "teste"},
-]
-INVALID_USERS: list = [
-    {"id": 3, "nome": "inativoa", "senha": "inativoa"},
-    {"id": 4, "nome": "inativoa", "senha": "inativoa"},
-    {"id": 5, "nome": "nonecxiste", "senha": "nonecxiste"},
-]
 
 ORDERS_ID = [1, 2]
 
@@ -65,7 +57,7 @@ def test_pedido_service_se_consigo_alterar_status_pedido(order_seeded_db):
 
     for id_pedido, user in enumerate(VALID_USERS, start=1):
         usuario = usuario_service.autenticar_usuario(
-            user.get("nome"), user.get("senha")
+            user.get("email"), user.get("senha")
         )
         pedido = pedido_service.alterar_status_pedido(id_pedido, "CANCELADO", usuario)
         assert pedido.status == "CANCELADO"
@@ -78,7 +70,7 @@ def test_pedido_service_se_nao_consigo_alterar_status_pedido_inexistente(
     usuario_service = UsuarioService(order_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -95,7 +87,7 @@ def test_pedido_service_se_nao_consigo_alterar_status_pedido_sem_devidas_permiss
     usuario_service = UsuarioService(order_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+        VALID_USERS[1].get("email"), VALID_USERS[1].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -110,7 +102,7 @@ def test_pedido_service_se_admin_consegue_listar_todos_pedidos(order_seeded_db):
     usuario_service = UsuarioService(order_seeded_db)
 
     admin = VALID_USERS[0]
-    usuario = usuario_service.autenticar_usuario(admin.get("nome"), admin.get("senha"))
+    usuario = usuario_service.autenticar_usuario(admin.get("email"), admin.get("senha"))
     pedidos = pedido_service.listar_todos_pedidos(
         usuario, PaginationSchema(offset=0, limit=50)
     )
@@ -127,7 +119,7 @@ def test_pedido_service_se_quem_nao_tem_admin_eh_proibido_de_listar_todos_pedido
     not_admin = VALID_USERS[1]
 
     usuario = usuario_service.autenticar_usuario(
-        not_admin.get("nome"), not_admin.get("senha")
+        not_admin.get("email"), not_admin.get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -145,7 +137,7 @@ def test_pedido_service_se_consigo_listar_pedidos_de_um_usuario(order_seeded_db)
 
     for users in VALID_USERS:
         usuario = usuario_service.autenticar_usuario(
-            users.get("nome"), users.get("senha")
+            users.get("email"), users.get("senha")
         )
         pedidos = pedido_service.listar_todos_pedidos_usuarios(usuario)
 
@@ -158,7 +150,7 @@ def test_pedido_service_se_consigo_remover_item_de_um_pedido(order_item_seeded_d
 
     for index, users in enumerate(VALID_USERS, start=1):
         usuario = usuario_service.autenticar_usuario(
-            users.get("nome"), users.get("senha")
+            users.get("email"), users.get("senha")
         )
 
         pedidos = pedido_service.remover_item_pedido(index, usuario)
@@ -173,7 +165,7 @@ def test_pedido_service_se_consigo_remover_item_inexistente_de_um_pedido(
     usuario_service = UsuarioService(order_item_without_order_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
     with pytest.raises(HTTPException) as exc:
         pedido_service.remover_item_pedido(5, usuario)
@@ -189,7 +181,7 @@ def test_pedido_service_se_consigo_remover_item_de_um_pedido_inexistente(
     usuario_service = UsuarioService(order_item_without_order_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
     with pytest.raises(HTTPException) as exc:
         pedido_service.remover_item_pedido(4, usuario)
@@ -205,7 +197,7 @@ def test_pedido_service_se_nao_consigo_remover_item_pedido_sem_acesso(
     usuario_service = UsuarioService(order_item_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+        VALID_USERS[1].get("email"), VALID_USERS[1].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -222,7 +214,7 @@ def test_pedido_service_se_consigo_adicionar_item_pedido(
     usuario_service = UsuarioService(order_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
 
     pedido, item_pedido = pedido_service.adicionando_item_pedido(
@@ -242,7 +234,7 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ha_erro_ao_o
     usuario_service = UsuarioService(order_item_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -265,7 +257,7 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_quando_ele_nao_exis
     usuario_service = UsuarioService(order_item_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[0].get("nome"), VALID_USERS[0].get("senha")
+        VALID_USERS[0].get("email"), VALID_USERS[0].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -288,7 +280,7 @@ def test_pedido_service_se_nao_consigo_adicionar_item_pedido_sem_permissao(
     usuario_service = UsuarioService(order_item_seeded_db)
 
     usuario = usuario_service.autenticar_usuario(
-        VALID_USERS[1].get("nome"), VALID_USERS[1].get("senha")
+        VALID_USERS[1].get("email"), VALID_USERS[1].get("senha")
     )
 
     with pytest.raises(HTTPException) as exc:

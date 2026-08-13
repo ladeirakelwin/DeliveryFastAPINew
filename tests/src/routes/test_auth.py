@@ -32,7 +32,7 @@ def test_auth_routes_se_nao_consigo_criar_uma_conta_existente(client):
 def test_auth_routes_se_consigo_obter_token(client_user):
     data = {
         "password": "teste",
-        "username": "teste",
+        "username": "teste@teste.com",
     }
 
     response: Response = client_user.post("/auth/login-form", data=data)
@@ -45,7 +45,7 @@ def test_auth_routes_se_consigo_obter_token(client_user):
 def test_auth_routes_se_nao_consigo_obter_token_com_usuario_invalido(client_user):
     data = {
         "password": "teste1",
-        "username": "teste2",
+        "username": "teste2@teste2.com",
     }
 
     response: Response = client_user.post("/auth/login-form", data=data)
@@ -56,7 +56,7 @@ def test_auth_routes_se_nao_consigo_obter_token_com_usuario_invalido(client_user
 def test_auth_routes_se_nao_consigo_obter_token_com_usuario_inativo(client_user):
     data = {
         "password": "inativoa",
-        "username": "inativoa",
+        "username": "inativoa@inativoa.com",
     }
 
     response: Response = client_user.post("/auth/login-form", data=data)
@@ -67,7 +67,7 @@ def test_auth_routes_se_nao_consigo_obter_token_com_usuario_inativo(client_user)
 def test_auth_routes_se_consigo_obter_novos_tokens(client_user):
     data = {
         "password": "adm",
-        "username": "adm",
+        "username": "adm@adm.com",
     }
 
     response_auth: Response = client_user.post("/auth/login-form", data=data)
@@ -87,7 +87,7 @@ def test_auth_routes_se_consigo_obter_novos_tokens(client_user):
 def test_auth_routes_se_nao_consigo_obter_novos_tokens_com_token_invalido(client_user):
     data = {
         "password": "adm",
-        "username": "adm",
+        "username": "adm@adm.com",
     }
 
     response_auth: Response = client_user.post("/auth/login-form", data=data)
