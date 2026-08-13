@@ -47,7 +47,7 @@ class ItemPedidoSchema(BaseModel):
     quantidade: int = Field(gt=0)
     sabor: str
     tamanho: str
-    preco_unitario: float = Field(gt=0)
+    preco_unitario: float = Field(ge=0)
 
 
 class ItemPedidoSchemaModel(ItemPedidoSchema):
