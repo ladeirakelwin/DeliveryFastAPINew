@@ -1,13 +1,12 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from fastapi import Query
 from typing import Optional
 
 
 class UsuarioCreate(BaseModel):
     nome: str
-    email: str
-    senha: str
-    ativo: Optional[bool]
+    email: EmailStr
+    senha: str = Field(min_length=6)
 
 
 class UsuarioBaseSchema(BaseModel):
@@ -45,10 +44,10 @@ class IdPedidoResponseSchema(BaseModel):
 class ItemPedidoSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    quantidade: int
+    quantidade: int = Field(gt=0)
     sabor: str
     tamanho: str
-    preco_unitario: float
+    preco_unitario: float = Field(gt=0)
 
 
 class ItemPedidoSchemaModel(ItemPedidoSchema):
@@ -58,7 +57,7 @@ class ItemPedidoSchemaModel(ItemPedidoSchema):
 
 class AdicionarItemPedidoResponseSchema(ItemPedidoSchema):
     pedido: int
-    preco_pedido: float
+    preco_pedido: float = Field(gt=0)
 
 
 class PedidoSchema(BaseModel):
@@ -67,7 +66,7 @@ class PedidoSchema(BaseModel):
     id: int
     status: str
     usuario: int
-    preco: float
+    preco: float = Field(gt=0)
     itens: list[ItemPedidoSchemaModel]
 
 
