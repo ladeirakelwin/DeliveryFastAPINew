@@ -45,8 +45,8 @@ class ItemPedidoSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     quantidade: int = Field(gt=0)
-    sabor: str
-    tamanho: str
+    sabor: str = Field(min_length=3)
+    tamanho: str = Field(min_length=1, max_length=3)
     preco_unitario: float = Field(ge=0)
 
 
