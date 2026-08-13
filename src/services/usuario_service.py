@@ -38,8 +38,8 @@ class UsuarioService:
         usuario = self.db.scalar(usuario_db)
         return usuario
 
-    def autenticar_usuario(self, apelido: str, senha: str) -> Usuario:
-        usuario = self._obtendo_usuario_nome(apelido)
+    def autenticar_usuario(self, email: str, senha: str) -> Usuario:
+        usuario = self._obtendo_usuario_email(email)
 
         if not usuario or not validar_senha(senha, usuario.senha):
             raise HTTPException(
@@ -88,12 +88,12 @@ class UsuarioService:
 
     def obter_usuario_atual(self, token: str) -> Usuario:
         try:
-            nome = AuthService.decodificar_token(token).get("sub")
+            email = AuthService.decodificar_token(token).get("sub")
             tipo_token = AuthService.decodificar_token(token).get("type")
-            if not nome or tipo_token != "access":
+            if not email or tipo_token != "access":
                 raise self.EXCECAO_CREDENCIAL
 
-            usuario = self._obtendo_usuario_nome(nome)
+            usuario = self._obtendo_usuario_email(email)
             if not usuario:
                 raise self.EXCECAO_CREDENCIAL
             if not usuario.ativo:
