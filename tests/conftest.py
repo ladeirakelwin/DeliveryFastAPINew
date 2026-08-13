@@ -8,6 +8,30 @@ from database import Base, get_db
 import pytest
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
+VALID_USERS: list = [
+    {"id": 1, "nome": "adm", "email": "adm@adm.com", "senha": "adm"},
+    {"id": 2, "nome": "teste", "email": "teste@teste.com", "senha": "teste"},
+]
+INVALID_USERS: list = [
+    {
+        "id": 3,
+        "nome": "inativoa",
+        "email": "inativoa@inativoa.com",
+        "senha": "inativoa",
+    },
+    {
+        "id": 4,
+        "nome": "inativob",
+        "email": "inativob@inativob.com",
+        "senha": "inativob",
+    },
+    {
+        "id": 5,
+        "nome": "nonecxiste",
+        "email": "nonecxiste@nonecxiste.com",
+        "senha": "nonecxiste",
+    },
+]
 
 
 @pytest.fixture(scope="session")
