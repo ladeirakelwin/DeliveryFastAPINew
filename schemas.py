@@ -66,7 +66,7 @@ class PedidoSchema(BaseModel):
     id: int
     status: str
     usuario: int
-    preco: float = Field(gt=0)
+    preco: float = Field(ge=0)
     itens: list[ItemPedidoSchemaModel]
 
 
