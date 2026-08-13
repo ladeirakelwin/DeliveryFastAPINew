@@ -20,7 +20,7 @@ AccessTokenLogin = Annotated[OAuth2PasswordRequestForm, Depends()]
 async def criar_conta(usuario: UsuarioCreate, db: DBSession):
     usuario_service = UsuarioService(db)
     novo_usuario = usuario_service.criar_usuario(
-        usuario.email, usuario.senha, usuario.nome, usuario.ativo or True
+        usuario.email, usuario.senha, usuario.nome, True
     )
 
     return UsuarioResponseSchema.model_validate(novo_usuario)
