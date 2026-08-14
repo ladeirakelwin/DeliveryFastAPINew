@@ -61,6 +61,64 @@ def test_order_routes_se_consigo_criar_item_pedido(client_order):
     assert int(novo_item_pedido.json()["pedido"]) == id_pedido
 
 
+def test_order_routes_se_nao_consigo_criar_item_pedido_com_quantidade_negativa(
+    client_order,
+):
+    response_access_token = client_order.post(
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
+    )
+    access_token = response_access_token.json()["access_token"]
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    item_pedido = json.dumps(
+        {"quantidade": -1, "sabor": "Sushi", "tamanho": "G", "preco_unitario": 80.0}
+    )
+
+    id_pedido = 1
+    novo_item_pedido = client_order.post(
+        f"/pedidos/{id_pedido}/adicionar-item", headers=headers, content=item_pedido
+    )
+
+    assert novo_item_pedido.status_code == 422
+    assert novo_item_pedido.json()["detail"][0]["type"] == "greater_than"
+
+
+def test_order_routes_se_nao_consigo_criar_item_pedido_com_valor_negativo(client_order):
+    response_access_token = client_order.post(
+        "/auth/login-form",
+        data={
+            "username": VALID_USERS[0].get("email"),
+            "password": VALID_USERS[0].get("senha"),
+        },
+    )
+    access_token = response_access_token.json()["access_token"]
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    item_pedido = json.dumps(
+        {"quantidade": 1, "sabor": "Sushi", "tamanho": "G", "preco_unitario": -1}
+    )
+
+    id_pedido = 1
+    novo_item_pedido = client_order.post(
+        f"/pedidos/{id_pedido}/adicionar-item", headers=headers, content=item_pedido
+    )
+
+    assert novo_item_pedido.status_code == 422
+    assert novo_item_pedido.json()["detail"][0]["type"] == "greater_than_equal"
+
+
 def test_order_routes_se_consigo_deletar_item_pedido(client_order_item):
     response_access_token = client_order_item.post(
         "/auth/login-form",
