@@ -5,12 +5,14 @@ from fastapi.exceptions import HTTPException
 from src.services.usuario_service import UsuarioService
 from schemas import ItemPedidoSchema, PaginationSchema
 from src.utils.exceptions import (
+    start_detail_error,
     UNAUTHORIZED_USER,
     ORDER_ITEM_NOT_FOUNDED,
     ORDER_ITEM_WITH_ORDER_NOT_FOUNDED,
     ORDER_NOT_FOUNDED,
     ORDER_ERROR,
     ORDER_NOT_CREATED,
+    SQL_ERROR,
 )
 from typing import Literal
 
@@ -23,11 +25,15 @@ class PedidoService:
         pedido.preco = sum(
             [float(item.preco_unitario) * int(item.quantidade) for item in pedido.itens]
         )
+        try:
+            self.db.commit()
+            self.db.refresh(pedido)
 
-        self.db.commit()
-        self.db.refresh(pedido)
+            return pedido
+        except Exception:
+            self.db.rollback()
 
-        return pedido
+            raise
 
     def _obtendo_pedido(self, id_pedido: int) -> Pedido | None:
         pedido_db = select(Pedido).where(Pedido.id == id_pedido)
@@ -67,9 +73,11 @@ class PedidoService:
             return novo_pedido
 
         except HTTPException:
+            self.db.rollback()
             raise UNAUTHORIZED_USER
 
         except Exception:
+            self.db.rollback()
             raise ORDER_NOT_CREATED
 
     def adicionando_item_pedido(
@@ -93,13 +101,16 @@ class PedidoService:
             preco_unitario=item_pedido.preco_unitario,
             pedido=pedido.id,
         )
+        try:
+            self.db.add(novo_item_pedido)
+            self.db.commit()
 
-        self.db.add(novo_item_pedido)
-        self.db.commit()
+            pedido_atualizado = self._calcular_total_pedido(pedido)
 
-        pedido_atualizado = self._calcular_total_pedido(pedido)
-
-        return pedido_atualizado, novo_item_pedido
+            return pedido_atualizado, novo_item_pedido
+        except Exception:
+            self.db.rollback()
+            raise start_detail_error("Não foi pedido adicionar item pedido!", SQL_ERROR)
 
     def remover_item_pedido(self, id_item_pedido: int, usuario: Usuario) -> Pedido:
         item_pedido = self._obtendo_item_pedido(id_item_pedido)
@@ -115,12 +126,18 @@ class PedidoService:
         if not usuario.admin and usuario.id != pedido_associado.usuario:
             raise UNAUTHORIZED_USER
 
-        self.db.delete(item_pedido)
-        self.db.commit()
+        try:
+            self.db.delete(item_pedido)
+            self.db.commit()
 
-        pedido_associado_recalculado = self._calcular_total_pedido(pedido_associado)
+            pedido_associado_recalculado = self._calcular_total_pedido(pedido_associado)
 
-        return pedido_associado_recalculado
+            return pedido_associado_recalculado
+        except Exception:
+            self.db.rollback()
+            raise start_detail_error(
+                "Não foi possível remover item do pedido! ", SQL_ERROR
+            )
 
     def alterar_status_pedido(
         self,
@@ -136,10 +153,17 @@ class PedidoService:
             raise UNAUTHORIZED_USER
 
         pedido.status = novo_status
-        self.db.commit()
-        self.db.refresh(pedido)
 
-        return pedido
+        try:
+            self.db.commit()
+            self.db.refresh(pedido)
+
+            return pedido
+        except Exception:
+            self.db.rollback()
+            raise start_detail_error(
+                "Não foi possível alterar status do pedido! ", SQL_ERROR
+            )
 
     def listar_todos_pedidos(
         self, usuario: Usuario, query: PaginationSchema
