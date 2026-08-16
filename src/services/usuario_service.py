@@ -8,6 +8,7 @@ from typing import Annotated
 from database import DBSession
 from dependencies import oauth2_scheme
 from src.services.auth_service import AuthService
+from src.utils.exceptions import SQL_ERROR, start_detail_error
 
 
 class UsuarioService:
@@ -81,10 +82,8 @@ class UsuarioService:
 
             return novo_usuario
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Erro inesperado!",
-            )
+            self.db.rollback()
+            raise start_detail_error("Não foi possível criar usuário! ", SQL_ERROR)
 
     def obter_usuario_atual(self, token: str) -> Usuario:
         try:
