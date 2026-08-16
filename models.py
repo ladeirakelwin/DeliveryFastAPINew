@@ -48,7 +48,7 @@ class ItensPedido(Base):
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True, nullable=False
     )
-    quantidade: Mapped[int] = mapped_column(String)
+    quantidade: Mapped[int] = mapped_column(Integer)
     sabor: Mapped[str] = mapped_column(String)
     tamanho: Mapped[str] = mapped_column(String)
     preco_unitario: Mapped[float] = mapped_column(Float)
