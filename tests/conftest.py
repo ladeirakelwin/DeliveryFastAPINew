@@ -61,9 +61,15 @@ def mock_get_db(db_engine):
 
     yield session
 
-    session.close()
-    transaction.rollback()
-    connection.close()
+    try:
+        if transaction.is_active:
+            transaction.rollback()
+
+    except Exception:
+        pass
+    finally:
+        session.close()
+        connection.close()
 
 
 @pytest.fixture(scope="function")
