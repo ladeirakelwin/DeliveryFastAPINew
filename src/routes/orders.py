@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from src.services.usuario_service import CurrentUser, UsuarioService
 from src.services.pedido_service import PedidoService
 from schemas import (
@@ -33,6 +33,7 @@ def adicionar_item_pedido(
     pedido, novo_item_pedido = PedidoService(db).adicionando_item_pedido(
         id_pedido, usuario, item_pedido
     )
+
     return AdicionarItemPedidoResponseSchema(
         quantidade=novo_item_pedido.quantidade,
         sabor=novo_item_pedido.sabor,
