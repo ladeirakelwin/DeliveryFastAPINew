@@ -34,3 +34,13 @@ ORDER_ITEM_WITH_ORDER_NOT_FOUNDED = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="Pedido associado ao item pedido não encontrado!",
 )
+
+SQL_ERROR = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Tente novamente mais tarde!",
+)
+
+
+def start_detail_error(initial_error: str, Exception: HTTPException) -> HTTPException:
+    Exception.detail = initial_error + Exception.detail
+    return Exception
