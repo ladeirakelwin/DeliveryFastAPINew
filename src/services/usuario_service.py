@@ -81,9 +81,15 @@ class UsuarioService:
             self.db.commit()
 
             return novo_usuario
-        except Exception:
+        except (TypeError, Exception) as err:
             self.db.rollback()
-            raise start_detail_error("Não foi possível criar usuário! ", SQL_ERROR)
+            if type(err) is TypeError:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="Senha e/ou nome de usuário e/ou email deve ser string!",
+                )
+            else:
+                raise start_detail_error("Não foi possível criar usuário! ", SQL_ERROR)
 
     def obter_usuario_atual(self, token: str) -> Usuario:
         try:
