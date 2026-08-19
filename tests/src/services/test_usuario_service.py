@@ -98,8 +98,11 @@ def test_usuario_service_se_ocorrera_erro_ao_enviar_valores_incorretos(mock_get_
                 senha=True,  # type: ignore
             )
 
-        assert scenario.value.status_code == 500
-        assert scenario.value.detail == "Erro inesperado!"
+        assert scenario.value.status_code == 422
+        assert (
+            scenario.value.detail
+            == "Senha e/ou nome de usuário e/ou email deve ser string!"
+        )
 
 
 def test_usuario_service_obtencao_do_usuario_via_token(user_seeded_db):
