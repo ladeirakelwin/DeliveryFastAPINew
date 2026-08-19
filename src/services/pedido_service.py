@@ -23,7 +23,7 @@ class PedidoService:
 
     def _calcular_total_pedido(self, pedido: Pedido) -> Pedido:
         pedido.preco = sum(
-            [float(item.preco_unitario) * int(item.quantidade) for item in pedido.itens]
+            [float(item.preco_unitario) * item.quantidade for item in pedido.itens]
         )
         try:
             self.db.commit()
