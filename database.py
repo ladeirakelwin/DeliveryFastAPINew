@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 
 
-same_thread = False if "sqlite" in DATABASE_URL else True
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": same_thread})
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autoflush=False, bind=engine)
 
