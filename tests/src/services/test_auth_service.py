@@ -50,7 +50,6 @@ def test_auth_service_se_retorna_dict_vazio_quando_tentar_decodificar_token_venc
 def test_auth_service_se_enviar_valor_invalido_para_atualizar_token_ele_sobe_401():
     auth_service = AuthService()
     access_token = auth_service.criar_token({"sub": "sapopemba"})
-    refresh_token = auth_service.criar_token({"sub": "sapopemba"}, True)
 
     with pytest.raises(HTTPException):
         auth_service.atualizar_token("")
