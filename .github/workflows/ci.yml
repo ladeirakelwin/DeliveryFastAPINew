@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12.13
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.12.13"
     - name: astral-sh/setup-uv
@@ -45,10 +45,10 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
       run: |
-        uv sync && uv run alembic upgrade head
+        uv sync
     - name: Lint with ruff
       run: |
-        uv run ruff format .
+        uv run ruff format --check . && ruff check .
     - name: Test with pytest
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
