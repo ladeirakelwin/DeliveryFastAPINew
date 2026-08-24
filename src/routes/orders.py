@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from src.services.usuario_service import CurrentUser, UsuarioService
 from src.services.pedido_service import PedidoService
 from schemas import (

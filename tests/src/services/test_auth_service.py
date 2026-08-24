@@ -1,6 +1,5 @@
 from src.services.auth_service import AuthService
 from fastapi.exceptions import HTTPException
-from jwt.exceptions import ExpiredSignatureError
 from time import sleep
 import pytest
 

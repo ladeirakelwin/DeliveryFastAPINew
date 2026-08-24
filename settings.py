@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic_core import PydanticCustomError, ValidationError
+from pydantic_core import PydanticCustomError
 from functools import lru_cache
 from pydantic import field_validator
 
