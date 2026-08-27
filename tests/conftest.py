@@ -5,6 +5,7 @@ from models import Usuario, Pedido, ItensPedido
 from fastapi.testclient import TestClient
 from main import app
 from database import Base, get_db
+from loguru import logger
 import pytest
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -32,6 +33,15 @@ INVALID_USERS: list = [
         "senha": "nonecxiste",
     },
 ]
+
+
+@pytest.fixture(autouse=True)
+def disable_loguru():
+    # Disable logging for your modules (pass "" to disable globally)
+    logger.disable("")
+    yield
+    # Re-enable if needed after the test session finishes
+    logger.enable("")
 
 
 @pytest.fixture(scope="session")
