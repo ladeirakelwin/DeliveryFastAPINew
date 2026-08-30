@@ -7,6 +7,10 @@ import time
 from src.routes import auth
 from fastapi.responses import JSONResponse
 from loguru import logger
+from src.utils.logging import setup_logging
+
+
+setup_logging()
 
 app = FastAPI()
 
@@ -21,13 +25,12 @@ def healthcheck(db: DBSession):
             "status": "healthy",
             "latency_ms": round(latency, 2),
         }
-    except SQLAlchemyError as err:
+    except SQLAlchemyError:
         # Crucial: Rollback prevents the session from getting stuck in a broken transaction state
         db.rollback()
 
         # Extract the underlying database engine error message if available
-        error_msg = str(err.__dict__.get("orig", err))
-        logger.error(error_msg)
+        logger.exception("Erro no health check: ")
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={
@@ -35,8 +38,8 @@ def healthcheck(db: DBSession):
                 "latency_ms": round((time.time() - start_time) * 1000, 2),
             },
         )
-    except Exception as err:
-        logger.error(str(err))
+    except Exception:
+        logger.exception("Erro no healthcheck: ")
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={

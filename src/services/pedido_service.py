@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from src.services.usuario_service import UsuarioService
 from schemas import ItemPedidoSchema, PaginationSchema
+from loguru import logger
 from src.utils.exceptions import (
     start_detail_error,
     UNAUTHORIZED_USER,
@@ -31,6 +32,7 @@ class PedidoService:
 
             return pedido
         except Exception:
+            logger.exception("Erro ao calcular total pedido: ")
             self.db.rollback()
 
             raise
@@ -63,6 +65,7 @@ class PedidoService:
         try:
             _, usuario_ativo = usuario_service.obter_status_usuario(id=id_usuario)
             if not usuario_ativo:
+                logger.error("Erro criar pedido sem usuário ativo!")
                 raise UNAUTHORIZED_USER
 
             novo_pedido = Pedido(id_usuario, status_pedido, preco)
@@ -73,10 +76,12 @@ class PedidoService:
             return novo_pedido
 
         except HTTPException:
+            logger.exception("Erro ao calcular total pedido: ")
             self.db.rollback()
             raise UNAUTHORIZED_USER
 
         except Exception:
+            logger.exception("Erro ao calcular total pedido: ")
             self.db.rollback()
             raise ORDER_NOT_CREATED
 
@@ -86,12 +91,15 @@ class PedidoService:
         try:
             pedido = self._obtendo_pedido(id_pedido)
         except Exception:
+            logger.exception("Erro adicionar item pedido: ")
             raise ORDER_ERROR
 
         if not pedido:
+            logger.error("Erro ao adicionar item sem pedido!")
             raise ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido.usuario:
+            logger.exception("Erro ao adicionar item pedido sem autorização!")
             raise UNAUTHORIZED_USER
 
         novo_item_pedido = ItensPedido(
@@ -109,6 +117,7 @@ class PedidoService:
 
             return pedido_atualizado, novo_item_pedido
         except Exception:
+            logger.exception("Erro ao calcular total pedido: ")
             self.db.rollback()
             raise start_detail_error("Não foi pedido adicionar item pedido!", SQL_ERROR)
 
@@ -116,14 +125,17 @@ class PedidoService:
         item_pedido = self._obtendo_item_pedido(id_item_pedido)
 
         if not item_pedido:
+            logger.exception("Erro ao remover item inexistente!")
             raise ORDER_ITEM_NOT_FOUNDED
 
         pedido_associado = self._obtendo_pedido(item_pedido.pedido)
 
         if not pedido_associado:
+            logger.exception("Erro ao remover item de pedido inexistente!")
             raise ORDER_ITEM_WITH_ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido_associado.usuario:
+            logger.exception("Erro ao remover item pedido com usuário não autorizado!")
             raise UNAUTHORIZED_USER
 
         try:
@@ -134,6 +146,7 @@ class PedidoService:
 
             return pedido_associado_recalculado
         except Exception:
+            logger.exception("Erro ao remover item pedido: ")
             self.db.rollback()
             raise start_detail_error(
                 "Não foi possível remover item do pedido! ", SQL_ERROR
@@ -147,9 +160,11 @@ class PedidoService:
     ):
         pedido = self._obtendo_pedido(id_pedido)
         if not pedido:
+            logger.error("Erro ao alterar status pedido inválido!")
             raise ORDER_NOT_FOUNDED
 
         if not usuario.admin and usuario.id != pedido.usuario:
+            logger.exception("Erro ao alterar status pedido com usuário não autorizado")
             raise UNAUTHORIZED_USER
 
         pedido.status = novo_status
@@ -160,6 +175,7 @@ class PedidoService:
 
             return pedido
         except Exception:
+            logger.exception("Erro ao alterar status pedido: ")
             self.db.rollback()
             raise start_detail_error(
                 "Não foi possível alterar status do pedido! ", SQL_ERROR
@@ -170,6 +186,7 @@ class PedidoService:
     ) -> list[Pedido]:
 
         if not usuario.admin:
+            logger.exception("Erro ao listar todos pedidos sem ser admin")
             raise UNAUTHORIZED_USER
 
         pedidos = self._obtendo_pedidos(query)

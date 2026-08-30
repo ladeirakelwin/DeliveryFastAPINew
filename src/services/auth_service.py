@@ -7,6 +7,7 @@ from dependencies import (
 )
 from jwt.exceptions import ExpiredSignatureError, DecodeError
 from src.utils.exceptions import TOKEN_ERROR, UNAUTHORIZED_USER
+from loguru import logger
 import jwt
 
 
@@ -20,6 +21,7 @@ class AuthService:
     ) -> str:
 
         if not isinstance(is_refresh_token, bool):
+            logger.error("Erro ao criar token se a flag de is_rf não é booleana")
             raise TOKEN_ERROR
 
         try:
@@ -45,6 +47,7 @@ class AuthService:
             token = jwt.encode(token_cru, SECRET_KEY, ALGORITHM)
 
         except Exception:
+            logger.exception("Erro ao criar token: ")
             raise TOKEN_ERROR
 
         return token
@@ -55,12 +58,14 @@ class AuthService:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
         except (ExpiredSignatureError, DecodeError, Exception):
+            logger.exception("Erro ao decodificar token: ")
             return {}
 
     def atualizar_token(self, refresh_token_codificado: str) -> tuple[str, str]:
         refresh_token = self.decodificar_token(refresh_token_codificado)
 
         if not refresh_token or refresh_token.get("type") != "refresh":
+            logger.error("Error ao atualizar token: ")
             raise UNAUTHORIZED_USER
 
         novo_refresh_token = self.criar_token({"sub": refresh_token.get("sub")}, True)
