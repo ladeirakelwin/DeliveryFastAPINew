@@ -4,6 +4,12 @@ API REST para gerenciamento de usuários e pedidos construída com **FastAPI**, 
 
 A aplicação implementa autenticação JWT com access e refresh tokens, gerenciamento de pedidos e itens, controle de acesso administrativo, paginação, migrations com Alembic, testes automatizados e ambiente containerizado com Docker Compose.
 
+## API em produção
+
+A API está disponível em produção no Render. Acesse a documentação interativa pelo link:
+
+[https://deliveryfastapinew.onrender.com/docs](https://deliveryfastapinew.onrender.com/docs)
+
 ## Funcionalidades
 
 ### Usuários e autenticação
