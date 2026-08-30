@@ -14,4 +14,6 @@ RUN uv sync --frozen --no-cache
 # Copia o restante do código do seu projeto
 COPY . /code
 
-EXPOSE 8000
+ENTRYPOINT ["./entrypoint.sh"]
+
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
