@@ -9,18 +9,11 @@ from database import DBSession
 from dependencies import oauth2_scheme
 from src.services.auth_service import AuthService
 from src.utils.exceptions import SQL_ERROR, start_detail_error
+from src.utils.exceptions import USUARIO_INATIVO, EXCECAO_CREDENCIAL
+from loguru import logger
 
 
 class UsuarioService:
-    USUARIO_INATIVO = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!"
-    )
-    EXCECAO_CREDENCIAL = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Não foi possível validar credencial",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
     def __init__(self, db: Session):
         self.db = db
 
@@ -43,13 +36,14 @@ class UsuarioService:
         usuario = self._obtendo_usuario_email(email)
 
         if not usuario or not validar_senha(senha, usuario.senha):
+            logger.error("Erro ao autenticar com usuário ou senha inválido.")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário ou senha inválido!",
             )
 
         if not usuario.ativo:
-            raise self.USUARIO_INATIVO
+            raise USUARIO_INATIVO
 
         return usuario
 
@@ -64,6 +58,7 @@ class UsuarioService:
         nome_existe = self._obtendo_usuario_nome(nome)
 
         if email_existe or nome_existe:
+            logger.error("Erro ao criar conta existente!")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Conta já existe!"
             )
@@ -82,6 +77,7 @@ class UsuarioService:
 
             return novo_usuario
         except (TypeError, Exception) as err:
+            logger.exception("Erro ao alterar status pedido: ")
             self.db.rollback()
             if type(err) is TypeError:
                 raise HTTPException(
@@ -96,22 +92,30 @@ class UsuarioService:
             email = AuthService.decodificar_token(token).get("sub")
             tipo_token = AuthService.decodificar_token(token).get("type")
             if not email or tipo_token != "access":
-                raise self.EXCECAO_CREDENCIAL
+                logger.error(
+                    "Erro ao obter usuario atual com email ou tipo_token inválido!"
+                )
+                raise EXCECAO_CREDENCIAL
 
             usuario = self._obtendo_usuario_email(email)
             if not usuario:
-                raise self.EXCECAO_CREDENCIAL
+                logger.error("Erro ao obter usuario atual com usuário inexistente!")
+                raise EXCECAO_CREDENCIAL
             if not usuario.ativo:
-                raise self.USUARIO_INATIVO
+                logger.error("Erro ao obter usuario atual com usuário inativo!")
+                raise USUARIO_INATIVO
 
             return usuario
 
         except HTTPException as exc:
+            logger.exception("Erro ao obter usuario atual: ")
+
             if exc.status_code == 401:
-                raise self.EXCECAO_CREDENCIAL
+                raise EXCECAO_CREDENCIAL
             else:
-                raise self.USUARIO_INATIVO
+                raise USUARIO_INATIVO
         except Exception as error:
+            logger.exception("Erro ao obter usuario atual: ")
             raise error
 
     def obter_status_usuario(

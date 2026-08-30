@@ -41,6 +41,16 @@ SQL_ERROR = HTTPException(
 )
 
 
+USUARIO_INATIVO = HTTPException(
+    status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo!"
+)
+EXCECAO_CREDENCIAL = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Não foi possível validar credencial",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
+
 def start_detail_error(initial_error: str, Exception: HTTPException) -> HTTPException:
     Exception.detail = initial_error + Exception.detail
     return Exception
